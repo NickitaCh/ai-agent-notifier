@@ -1,5 +1,13 @@
 # AI Agent Notifier
 
+[![test](https://github.com/NickitaCh/ai-agent-notifier/actions/workflows/test.yml/badge.svg)](https://github.com/NickitaCh/ai-agent-notifier/actions/workflows/test.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+> ⚠️ Личный проект в разработке, пока не опубликован в Chrome Web Store —
+> установка сейчас ручная (см. «Установка» ниже). Проверено вживую на
+> Windows + Claude Code/Cursor; GitHub Copilot CLI и macOS/Linux — по
+> документации, без реальной проверки (см. «Известные ограничения»).
+
 Chrome-расширение (MV3) + локальный Node.js native host, которые ловят события
 от хуков AI-агентов (сейчас: Claude Code, Cursor, GitHub Copilot CLI) и
 показывают уведомления, когда агент вас ждёт — в первую очередь **системное
@@ -418,3 +426,7 @@ TCP-порт демона (`127.0.0.1:8765`) защищён общим токе�
   feature-флаг в `~/.codex/config.toml`. У Aider нет hook/plugin API в
   принципе — адаптер потребовал бы оборачивать процесс аидера и парсить его
   вывод, это другой по духу (и более хрупкий) подход, отдельная задача.
+
+## Лицензия
+
+[MIT](LICENSE)
