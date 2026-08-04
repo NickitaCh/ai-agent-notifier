@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      { "command": "node E:\\chrome\\ai-agent-notifier\\host\\bin\\notify-agent-codex.js" }
+    ]
+  }
+}

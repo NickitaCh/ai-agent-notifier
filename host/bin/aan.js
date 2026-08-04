@@ -13,6 +13,7 @@
 //   aan notify permission | notify done                  (Claude Code)
 //   aan notify-cursor                                     (Cursor, тип хука в stdin)
 //   aan notify-copilot permission | notify-copilot done   (GitHub Copilot CLI)
+//   aan notify-codex                                       (OpenAI Codex CLI, только deny имеет эффект)
 
 const command = process.argv[2];
 const rest = process.argv.slice(3);
@@ -45,7 +46,11 @@ switch (command) {
     setArgs(rest);
     require('./notify-agent-copilot').main();
     break;
+  case 'notify-codex':
+    setArgs(rest);
+    require('./notify-agent-codex').main();
+    break;
   default:
-    console.error('Использование: aan <daemon|bridge|notify|notify-cursor|notify-copilot> [...]');
+    console.error('Использование: aan <daemon|bridge|notify|notify-cursor|notify-copilot|notify-codex> [...]');
     process.exit(1);
 }
