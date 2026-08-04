@@ -159,4 +159,9 @@ async function handleSubmitEvent(socket, event) {
   socket.end();
 }
 
-module.exports = { start };
+module.exports = {
+  start,
+  // Экспортировано ради юнит-теста на чистую логику мёржа — не для
+  // использования снаружи модуля в проде.
+  mergeSnoozeByProject,
+};
