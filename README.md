@@ -344,16 +344,25 @@ npm run build:linux   # -> dist/linux/ai-agent-notifier    (не протест�
 на другую версию Node (например `node22-win-x64` вместо `node18-win-x64`,
 это и подтверждено рабочим здесь) в соответствующем `build:*` скрипте.
 
-**Регистрация под собранный бинарник** — тот же `register-windows.js`/
-`register-unix.js`, что и раньше, с флагом `--exe`:
+**Регистрация без Node.js вообще (Windows)** — сам бинарник умеет
+зарегистрировать себя, отдельный `node install/...` не нужен:
+```
+ai-agent-notifier.exe register <EXTENSION_ID> [chrome|chromium|edge|brave]
+ai-agent-notifier.exe unregister [chrome|chromium|edge|brave]
+```
+Это то, что реально нужно человеку без Node.js — см. раздел ниже
+«Установка для другого человека (только exe, без Node.js)».
+
+**Регистрация с машины разработчика** (Node.js уже стоит) — тот же
+`register-windows.js`/`register-unix.js`, что и раньше, с флагом `--exe`:
 ```
 node install/register-windows.js <EXTENSION_ID> chrome --exe=dist/win/ai-agent-notifier.exe
 node install/register-unix.js <EXTENSION_ID> chrome --exe=/path/to/dist/linux/ai-agent-notifier
 ```
-Манифест native messaging не умеет передавать аргументы командной строки в
-`"path"`, поэтому скрипт всё равно генерирует тонкую обёртку (`.bat` на
-Windows, `.sh` на macOS/Linux) — она вызывает бинарник с аргументом
-`bridge`, сам бинарник Node.js не требует.
+Оба пути (через `node install/...` и через `aan.exe register`) в итоге
+пишут одинаковый манифест и одинаковую обёртку (`.bat` на Windows, `.sh`
+на macOS/Linux) — она вызывает бинарник с аргументом `bridge`, сам
+бинарник Node.js не требует.
 
 Автозапуск демона (`ipc-client.js`) внутри собранного бинарника работает
 без отдельной логики: `pkg` распознаёт путь внутри своего снапшота,
@@ -366,6 +375,35 @@ Windows, `.sh` на macOS/Linux) — она вызывает бинарник с
 можно направить на тот же бинарник вместо `node ... notify-agent.js` —
 команда в конфиге меняется на `"<путь>\ai-agent-notifier.exe" notify permission`
 (и аналогично для `done`/`notify-cursor`/`notify-copilot`).
+
+### Установка для другого человека (только exe, без Node.js)
+
+Для того, кто просто хочет попробовать — без клонирования репозитория и
+без установки Node.js. Нужны две вещи: папка `extension/` и файл
+`ai-agent-notifier.exe`.
+
+1. Собери бинарник у себя: `cd host && npm run build:win` →
+   `dist/win/ai-agent-notifier.exe`.
+2. Отправь человеку архивом: папку `extension/` целиком + этот `.exe`
+   (в любом месте на диске — куда положит `.exe`, там же появится
+   `native-host-launcher.bat`, трогать его не нужно).
+3. Человек открывает `chrome://extensions` → включает Developer mode →
+   «Load unpacked» → выбирает папку `extension/` → копирует ID
+   расширения (строка под названием).
+4. Открывает терминал рядом с `.exe` и запускает один раз:
+   ```
+   ai-agent-notifier.exe register <EXTENSION_ID>
+   ```
+   Это одновременно и регистрация native messaging host, и всё, что
+   раньше требовало Node.js — демон при первом реальном событии
+   поднимется сам, отдельно запускать его не нужно.
+5. Подключает хуки своего агента (Claude Code/Cursor/Copilot/Codex) по
+   разделу «Подключить хуки агента» выше — команда в конфиге хука должна
+   указывать на `ai-agent-notifier.exe notify ...` (и т.д.) вместо
+   `node ... notify-agent.js`.
+
+Если что-то пошло не так — `ai-agent-notifier.exe unregister` снимает
+регистрацию, можно начать заново.
 
 ## Почему PermissionRequest/Notification, а не PreToolUse/Stop
 
