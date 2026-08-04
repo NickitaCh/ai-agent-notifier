@@ -14,6 +14,8 @@
 //   aan notify-cursor                                     (Cursor, тип хука в stdin)
 //   aan notify-copilot permission | notify-copilot done   (GitHub Copilot CLI)
 //   aan notify-codex                                       (OpenAI Codex CLI, только deny имеет эффект)
+//   aan register <EXTENSION_ID> [chrome|chromium|edge|brave]   (Windows: без Node.js)
+//   aan unregister [chrome|chromium|edge|brave]
 
 const command = process.argv[2];
 const rest = process.argv.slice(3);
@@ -50,7 +52,13 @@ switch (command) {
     setArgs(rest);
     require('./notify-agent-codex').main();
     break;
+  case 'register':
+    require('../install/register-standalone').register(rest[0], rest[1] || 'chrome');
+    break;
+  case 'unregister':
+    require('../install/register-standalone').unregister(rest[0] || 'chrome');
+    break;
   default:
-    console.error('Использование: aan <daemon|bridge|notify|notify-cursor|notify-copilot|notify-codex> [...]');
+    console.error('Использование: aan <daemon|bridge|notify|notify-cursor|notify-copilot|notify-codex|register|unregister> [...]');
     process.exit(1);
 }
