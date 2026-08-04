@@ -46,11 +46,28 @@ function parseRule(rule) {
   return { tool: m[1], arg: m[2] ?? null };
 }
 
-function subjectFor(toolInput) {
-  if (!toolInput) return '';
-  if (typeof toolInput.command === 'string') return toolInput.command;
-  if (typeof toolInput.file_path === 'string') return toolInput.file_path;
-  return JSON.stringify(toolInput);
+// Составная shell-команда вроде "cd x && rm -f y && python ..." раньше
+// проверялась ТОЛЬКО целиком, одним anchored-регэкспом (^rm.*$) — и такой
+// паттерн у "Bash(rm*)" не матчил ничего, если rm не в самом начале строки.
+// Реальный Claude Code это ловит (мы это увидели по факту — он спросил
+// подтверждение, а наша имитация — нет), значит и нам нужно проверять не
+// только всю строку, но и отдельные под-команды. Это эвристика (не полный
+// shell-парсер, не различает && внутри кавычек/скобок), но закрывает
+// основной практический случай.
+function splitCommandSegments(command) {
+  return command
+    .split(/&&|\|\||[|;]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function subjectsFor(toolInput) {
+  if (!toolInput) return [''];
+  if (typeof toolInput.command === 'string') {
+    return [toolInput.command, ...splitCommandSegments(toolInput.command)];
+  }
+  if (typeof toolInput.file_path === 'string') return [toolInput.file_path];
+  return [JSON.stringify(toolInput)];
 }
 
 function ruleMatches(rule, toolName, toolInput) {
@@ -58,7 +75,8 @@ function ruleMatches(rule, toolName, toolInput) {
   if (!parsed) return false;
   if (!globToRegExp(parsed.tool).test(toolName)) return false;
   if (parsed.arg === null) return true; // безусловное правило на весь инструмент
-  return globToRegExp(parsed.arg).test(subjectFor(toolInput));
+  const pattern = globToRegExp(parsed.arg);
+  return subjectsFor(toolInput).some((subject) => pattern.test(subject));
 }
 
 // claudeSettings — необязательный параметр только для тестов, чтобы не

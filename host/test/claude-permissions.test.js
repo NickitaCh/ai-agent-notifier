@@ -32,6 +32,30 @@ test('ruleMatches: не матчит другой инструмент', () => {
   assert.equal(ruleMatches('Bash', 'PowerShell', { command: 'echo hi' }), false);
 });
 
+test('ruleMatches: составная команда — паттерн ловит подкоманду не в начале строки (регресс)', () => {
+  // Реальный случай: "cd x && rm -f y && python ..." — rm не в начале
+  // полной строки, но по факту это опасная команда, которую нужно поймать.
+  assert.equal(
+    ruleMatches('Bash(rm*)', 'Bash', { command: 'cd /tmp/x && rm -f file.xlsx && python -c "print(1)"' }),
+    true
+  );
+});
+
+test('ruleMatches: составная команда без опасной подкоманды не матчит', () => {
+  assert.equal(
+    ruleMatches('Bash(rm*)', 'Bash', { command: 'cd /tmp/x && echo hi && python -c "print(1)"' }),
+    false
+  );
+});
+
+test('ruleMatches: разделитель ";" тоже разбирается', () => {
+  assert.equal(ruleMatches('Bash(rm*)', 'Bash', { command: 'echo start; rm -rf /tmp/y' }), true);
+});
+
+test('ruleMatches: разделитель "|" (pipe) тоже разбирается', () => {
+  assert.equal(ruleMatches('Bash(rm*)', 'Bash', { command: 'echo y | rm -i file' }), true);
+});
+
 test('isBlanketlyAllowed: без tool name -> false (безопасный дефолт, уведомляем)', () => {
   assert.equal(isBlanketlyAllowed(null, {}, 'default', {}), false);
 });
@@ -67,6 +91,20 @@ test('isBlanketlyAllowed: ask-правило перекрывает бланко
   assert.equal(isBlanketlyAllowed('Bash', { command: 'echo hi' }, 'default', settings), true);
   assert.equal(isBlanketlyAllowed('Bash', { command: 'rm -rf /' }, 'default', settings), false);
   assert.equal(isBlanketlyAllowed('Bash', { command: 'sudo reboot' }, 'default', settings), false);
+});
+
+test('isBlanketlyAllowed: ask-правило ловит rm и внутри составной команды (реальный найденный баг)', () => {
+  // Живой случай: "cd dir && rm -f file && python ..." тихо прошёл как
+  // "безусловно разрешено", потому что rm не в начале всей строки — из-за
+  // этого пропало уведомление, хотя сам Claude Code всё равно спросил.
+  const settings = {
+    permissions: {
+      allow: ['Bash'],
+      ask: ['Bash(rm*)'],
+    },
+  };
+  const command = 'cd /tmp/project && rm -f _stage1.xlsx && python -c "print(1)"';
+  assert.equal(isBlanketlyAllowed('Bash', { command }, 'default', settings), false);
 });
 
 test('isBlanketlyAllowed: инструмент вне allow -> уведомляем (безопасный дефолт)', () => {
