@@ -13,6 +13,18 @@ const NATIVE_HOST_NAME = 'com.aiagentnotifier.host';
 const DAEMON_PORT = 8765;
 const DAEMON_HOST = '127.0.0.1';
 
+// Версия ПРОТОКОЛА (не версия пакета) — бампается только при изменении
+// формата сообщений между демоном и расширением. Расширение обновляется
+// автоматически через Chrome Web Store, а хост — вручную (или через
+// standalone-бинарник) — со временем они реально могут разойтись версиями.
+// Явное число проще и надёжнее сравнивать, чем package.json-версии (те
+// бампаются по любому поводу, не только при поломке протокола).
+const PROTOCOL_VERSION = 1;
+
+function hostVersion() {
+  return require('../package.json').version;
+}
+
 function logFilePath() {
   return path.join(platform.configDir(), 'daemon.log');
 }
@@ -33,6 +45,8 @@ module.exports = {
   NATIVE_HOST_NAME,
   DAEMON_PORT,
   DAEMON_HOST,
+  PROTOCOL_VERSION,
+  hostVersion,
   logFilePath,
   hookLogFilePath,
   routingSettingsPath,

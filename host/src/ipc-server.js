@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const net = require('net');
-const { DAEMON_PORT, DAEMON_HOST, logFilePath } = require('./constants');
+const { DAEMON_PORT, DAEMON_HOST, logFilePath, PROTOCOL_VERSION, hostVersion } = require('./constants');
 const { createLineReader, writeLine } = require('./ndjson');
 const router = require('./router');
 const settingsStore = require('./settings');
@@ -63,6 +63,18 @@ async function handleMessage(socket, msg) {
     case 'bridge_register':
       extensionChannel.registerBridge(socket);
       break;
+    case 'client_hello':
+      // Расширение обновляется автоматически через Chrome Web Store, хост —
+      // вручную. Отвечаем своей версией протокола сразу же, чтобы popup мог
+      // предупредить пользователя о рассинхроне, не блокируя саму работу
+      // (fail-open: несовпадение — это только предупреждение, не отказ).
+      if (msg.protocolVersion !== undefined && msg.protocolVersion !== PROTOCOL_VERSION) {
+        console.error(
+          `[ipc-server] несовпадение версий протокола: расширение=${msg.protocolVersion}, хост=${PROTOCOL_VERSION}`
+        );
+      }
+      writeLine(socket, buildHostHello());
+      break;
     case 'permission_response':
       extensionChannel.resolveDecision(msg.id, msg.decision);
       break;
@@ -78,6 +90,10 @@ async function handleMessage(socket, msg) {
     default:
       console.error(`[ipc-server] неизвестный тип сообщения: ${msg.type}`);
   }
+}
+
+function buildHostHello() {
+  return { type: 'host_hello', protocolVersion: PROTOCOL_VERSION, hostVersion: hostVersion() };
 }
 
 // Хвост daemon.log для кнопки "Скопировать диагностику" в popup — без
@@ -161,7 +177,8 @@ async function handleSubmitEvent(socket, event) {
 
 module.exports = {
   start,
-  // Экспортировано ради юнит-теста на чистую логику мёржа — не для
-  // использования снаружи модуля в проде.
+  // Экспортировано ради юнит-теста на чистую логику мёржа/хендшейка — не
+  // для использования снаружи модуля в проде.
   mergeSnoozeByProject,
+  buildHostHello,
 };

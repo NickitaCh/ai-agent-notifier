@@ -65,6 +65,17 @@
       .dot.on { background: var(--good); }
       .status-text { font-size: 11px; color: var(--muted); }
 
+      .version-warning {
+        display: none;
+        margin: 8px 14px 0;
+        padding: 7px 10px;
+        background: var(--warn-soft);
+        color: var(--warn);
+        border-radius: 6px;
+        font-size: 11px;
+      }
+      .version-warning.show { display: block; }
+
       section {
         padding: 12px 14px;
         border-bottom: 1px solid var(--line);
@@ -253,6 +264,7 @@
     <div style="padding: 0 14px; margin-top: 8px;">
       <span id="statusText" class="status-text">проверка...</span>
     </div>
+    <div id="versionWarning" class="version-warning"></div>
 
     <section id="onboarding">
       <h2>Companion-приложение не найдено</h2>

@@ -2,7 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { mergeSnoozeByProject } = require('../src/ipc-server');
+const { mergeSnoozeByProject, buildHostHello } = require('../src/ipc-server');
+const { PROTOCOL_VERSION, hostVersion } = require('../src/constants');
 
 test('mergeSnoozeByProject: пустой current + патч -> просто патч', () => {
   const result = mergeSnoozeByProject(undefined, { '/repo/a': 123 });
@@ -38,4 +39,13 @@ test('mergeSnoozeByProject: не мутирует переданный current',
   const current = { '/repo/a': 100 };
   mergeSnoozeByProject(current, { '/repo/a': null, '/repo/b': 200 });
   assert.deepEqual(current, { '/repo/a': 100 }); // исходный объект не тронут
+});
+
+test('buildHostHello: отдаёт текущую версию протокола и пакета хоста', () => {
+  const hello = buildHostHello();
+  assert.deepEqual(hello, {
+    type: 'host_hello',
+    protocolVersion: PROTOCOL_VERSION,
+    hostVersion: hostVersion(),
+  });
 });

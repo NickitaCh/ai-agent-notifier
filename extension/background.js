@@ -6,9 +6,16 @@ importScripts('channels/badge-channel.js', 'channels/notification-channel.js');
 // "name" в host-манифесте, который регистрируется в реестре/файловой системе.
 const NATIVE_HOST_NAME = 'com.aiagentnotifier.host';
 
+// Версия ПРОТОКОЛА (не версия расширения) — должна совпадать с
+// PROTOCOL_VERSION в host/src/constants.js. Расширение обновляется само
+// через Chrome Web Store, хост — вручную, поэтому со временем версии могут
+// разойтись; тогда popup покажет предупреждение (см. host_hello ниже).
+const EXTENSION_PROTOCOL_VERSION = 1;
+
 let port = null;
 let lastEvents = []; // короткий лог в памяти service worker'а — для popup
 let waiters = {}; // тип ответа демона ("settings_snapshot"/"diagnostics_snapshot") -> resolve-функции
+let hostInfo = null; // { protocolVersion, hostVersion, mismatch } — из последнего host_hello
 
 function connect() {
   if (port) return;
@@ -25,10 +32,24 @@ function connect() {
       console.error('[background] native host отключился:', chrome.runtime.lastError.message);
     }
     port = null;
+    hostInfo = null;
+  });
+  port.postMessage({
+    type: 'client_hello',
+    protocolVersion: EXTENSION_PROTOCOL_VERSION,
+    extensionVersion: chrome.runtime.getManifest().version,
   });
 }
 
 function onNativeMessage(payload) {
+  if (payload.type === 'host_hello') {
+    hostInfo = {
+      protocolVersion: payload.protocolVersion,
+      hostVersion: payload.hostVersion,
+      mismatch: payload.protocolVersion !== EXTENSION_PROTOCOL_VERSION,
+    };
+    return;
+  }
   if (payload.type === 'settings_snapshot' || payload.type === 'diagnostics_snapshot') {
     const pending = waiters[payload.type] || [];
     waiters[payload.type] = [];
@@ -87,7 +108,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (!msg) return false;
 
   if (msg.type === 'get_status') {
-    sendResponse({ connected: !!port, lastEvents });
+    sendResponse({ connected: !!port, lastEvents, hostInfo, extensionVersion: chrome.runtime.getManifest().version });
     return false;
   }
   if (msg.type === 'get_settings') {

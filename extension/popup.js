@@ -5,6 +5,7 @@ chrome.action.setBadgeText({ text: '' });
 
 const dot = document.getElementById('dot');
 const statusText = document.getElementById('statusText');
+const versionWarning = document.getElementById('versionWarning');
 const log = document.getElementById('log');
 const saveHint = document.getElementById('saveHint');
 const snoozeProjectSelect = document.getElementById('snoozeProject');
@@ -12,6 +13,10 @@ const snoozeActiveList = document.getElementById('snoozeActiveList');
 const permissionTimeoutInput = document.getElementById('permissionTimeoutSec');
 const stopDebounceInput = document.getElementById('stopDebounceSec');
 const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"][data-event]'));
+
+// Дубль константы из background.js — контексты разные, общего модуля нет
+// (см. projectLabel ниже, та же причина).
+const EXTENSION_PROTOCOL_VERSION = 1;
 
 // cwd последних событий — источник списка проектов для выбора "не беспокоить".
 let knownProjects = [];
@@ -156,6 +161,16 @@ async function refreshStatus() {
   dot.classList.toggle('on', res.connected);
   statusText.textContent = res.connected ? 'подключено к host' : 'нет связи с host';
   document.body.classList.toggle('disconnected', !res.connected);
+
+  if (res.hostInfo?.mismatch) {
+    versionWarning.textContent =
+      `Версии расширения (протокол ${EXTENSION_PROTOCOL_VERSION}) и host-процесса ` +
+      `(протокол ${res.hostInfo.protocolVersion}, версия ${res.hostInfo.hostVersion}) разошлись — ` +
+      `обновите обе стороны до последней версии (см. README).`;
+    versionWarning.classList.add('show');
+  } else {
+    versionWarning.classList.remove('show');
+  }
 
   log.innerHTML = '';
   if (!res.lastEvents.length) {
