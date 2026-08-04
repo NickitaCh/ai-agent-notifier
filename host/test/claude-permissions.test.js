@@ -56,6 +56,24 @@ test('ruleMatches: разделитель "|" (pipe) тоже разбирает
   assert.equal(ruleMatches('Bash(rm*)', 'Bash', { command: 'echo y | rm -i file' }), true);
 });
 
+test('ruleMatches: многострочная команда — опасная подкоманда на второй строке ловится (регресс)', () => {
+  // Реальный случай: один вызов Bash с несколькими шагами через перевод
+  // строки (без &&) — rm на второй строке, не в начале команды целиком.
+  assert.equal(
+    ruleMatches('Bash(rm*)', 'Bash', {
+      command: './script.exe do-thing\nrm -f build/artifact.bat\necho done',
+    }),
+    true
+  );
+});
+
+test('ruleMatches: многострочная команда без опасной подкоманды не матчит', () => {
+  assert.equal(
+    ruleMatches('Bash(rm*)', 'Bash', { command: './script.exe do-thing\necho fine\necho done' }),
+    false
+  );
+});
+
 test('isBlanketlyAllowed: без tool name -> false (безопасный дефолт, уведомляем)', () => {
   assert.equal(isBlanketlyAllowed(null, {}, 'default', {}), false);
 });
