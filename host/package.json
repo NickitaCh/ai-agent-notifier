@@ -1,0 +1,34 @@
+{
+  "name": "ai-agent-notifier-host",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Native host / демон для уведомлений от хуков AI-агентов (Claude Code, Cursor, GitHub Copilot CLI) в Chrome",
+  "main": "src/daemon.js",
+  "bin": {
+    "notify-agent": "bin/notify-agent.js",
+    "notify-agent-cursor": "bin/notify-agent-cursor.js",
+    "notify-agent-copilot": "bin/notify-agent-copilot.js",
+    "aan": "bin/aan.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "daemon": "node src/daemon.js",
+    "register:windows": "node install/register-windows.js",
+    "unregister:windows": "node install/unregister-windows.js",
+    "register:unix": "node install/register-unix.js",
+    "unregister:unix": "node install/unregister-unix.js",
+    "build:win": "pkg bin/aan.js --target node22-win-x64 --output dist/win/ai-agent-notifier.exe",
+    "build:mac": "pkg bin/aan.js --target node22-macos-x64 --output dist/mac/ai-agent-notifier",
+    "build:linux": "pkg bin/aan.js --target node22-linux-x64 --output dist/linux/ai-agent-notifier"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "pkg": {
+    "assets": ["config/routing.default.json"]
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.22.0"
+  }
+}

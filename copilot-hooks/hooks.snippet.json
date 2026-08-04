@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "powershell": "node E:\\chrome\\ai-agent-notifier\\host\\bin\\notify-agent-copilot.js permission",
+        "timeoutSec": 65
+      }
+    ],
+    "agentStop": [
+      {
+        "type": "command",
+        "powershell": "node E:\\chrome\\ai-agent-notifier\\host\\bin\\notify-agent-copilot.js done",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+# зависимости
+node_modules/
+
+# собранные standalone-бинарники (55+ МБ) — распространяются через
+# GitHub Releases, а не через сам репозиторий
+host/dist/
+
+# генерируется register-windows.js/register-unix.js на конкретной машине
+# (абсолютные пути к node.exe/бинарнику этого пользователя)
+host/install/native-host-launcher.bat
+host/install/native-host-launcher.sh
+host/install/*.generated.json
+
+# логи, ОС-мусор
+*.log
+.DS_Store
+Thumbs.db

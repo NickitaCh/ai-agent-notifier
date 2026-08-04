@@ -1,0 +1,333 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        --paper: #f1f2ee;
+        --paper-raised: #ffffff;
+        --ink: #1c1f1e;
+        --muted: #63665f;
+        --accent: #2b5d63;
+        --accent-soft: #dceae7;
+        --line: #d8d9d2;
+        --warn: #b8792a;
+        --warn-soft: #f5ead8;
+        --good: #3f7d5c;
+        --bad: #b04438;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #14161a;
+          --paper-raised: #1b1e22;
+          --ink: #ededea;
+          --muted: #9aa09a;
+          --accent: #7ec1c2;
+          --accent-soft: #1e3a3a;
+          --line: #2b2e31;
+          --warn: #e0a855;
+          --warn-soft: #362508;
+          --good: #6fbf95;
+          --bad: #e08277;
+        }
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+        font-size: 13px;
+        width: 300px;
+        padding: 0;
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+      }
+      header h1 {
+        font-size: 13.5px;
+        font-weight: 600;
+        margin: 0;
+        flex: 1;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--bad);
+        flex-shrink: 0;
+      }
+      .dot.on { background: var(--good); }
+      .status-text { font-size: 11px; color: var(--muted); }
+
+      section {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+      }
+      section h2 {
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin: 0 0 10px;
+        font-weight: 600;
+      }
+
+      #snoozeProject {
+        width: 100%;
+        font-size: 12px;
+        padding: 5px 6px;
+        margin-bottom: 8px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--paper-raised);
+        color: var(--ink);
+      }
+
+      .snooze-row { display: flex; gap: 6px; }
+      button.chip {
+        flex: 1;
+        font-size: 12px;
+        padding: 6px 0;
+        border: 1px solid var(--line);
+        background: var(--paper-raised);
+        color: var(--ink);
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      button.chip:hover { border-color: var(--accent); color: var(--accent); }
+      button.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+      ul.snooze-active-list { list-style: none; margin: 0; padding: 0; }
+      ul.snooze-active-list li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 8px;
+        padding: 7px 10px;
+        background: var(--warn-soft);
+        border-radius: 6px;
+        font-size: 12px;
+        color: var(--warn);
+      }
+      ul.snooze-active-list li span.proj { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      ul.snooze-active-list button {
+        border: none;
+        background: none;
+        color: inherit;
+        font-size: 12px;
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 0;
+        flex-shrink: 0;
+      }
+
+      table.channels { width: 100%; border-collapse: collapse; font-size: 12px; }
+      table.channels th {
+        text-align: left;
+        font-weight: 500;
+        color: var(--muted);
+        padding-bottom: 6px;
+      }
+      table.channels th.center, table.channels td.center { text-align: center; }
+      table.channels td { padding: 5px 0; }
+      table.channels input[type="checkbox"] { cursor: pointer; }
+
+      .field-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 12px;
+      }
+      .field-row:last-child { margin-bottom: 0; }
+      .field-row input[type="number"] {
+        width: 56px;
+        font-family: ui-monospace, "SF Mono", Consolas, monospace;
+        font-size: 12px;
+        padding: 3px 6px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: var(--paper-raised);
+        color: var(--ink);
+      }
+
+      .save-hint {
+        font-size: 10.5px;
+        color: var(--muted);
+        margin-top: 10px;
+        min-height: 13px;
+      }
+      .save-hint.show { color: var(--good); }
+
+      ul.log {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        max-height: 160px;
+        overflow-y: auto;
+      }
+      ul.log li {
+        padding: 5px 0;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 11.5px;
+        display: flex;
+        gap: 6px;
+      }
+      ul.log li:last-child { border-bottom: none; }
+      ul.log time {
+        font-family: ui-monospace, "SF Mono", Consolas, monospace;
+        flex-shrink: 0;
+        color: var(--muted);
+      }
+
+      /* Пока не подключено к native host — показываем онбординг вместо
+         настроек (они всё равно не сохранятся без демона). */
+      .settings-ui { display: block; }
+      body.disconnected .settings-ui { display: none; }
+      #onboarding { display: none; }
+      body.disconnected #onboarding { display: block; }
+
+      #onboarding ol {
+        margin: 0 0 12px;
+        padding-left: 18px;
+        font-size: 12.5px;
+      }
+      #onboarding li { margin-bottom: 8px; }
+      #onboarding code {
+        font-family: ui-monospace, "SF Mono", Consolas, monospace;
+        font-size: 11px;
+        background: var(--accent-soft);
+        padding: 1px 5px;
+        border-radius: 4px;
+        word-break: break-all;
+      }
+      #onboarding p.lead { font-size: 12.5px; color: var(--muted); margin: 0 0 12px; }
+      button.primary {
+        width: 100%;
+        font-size: 12.5px;
+        padding: 8px 0;
+        border: none;
+        background: var(--accent);
+        color: var(--paper);
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button.primary:hover { opacity: 0.9; }
+      button.primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      #checkAgainHint {
+        text-align: center;
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 8px;
+        min-height: 13px;
+      }
+
+      .report-row { margin-top: 10px; }
+      button.ghost {
+        width: 100%;
+        font-size: 11.5px;
+        padding: 7px 0;
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--muted);
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      button.ghost:hover { border-color: var(--accent); color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span id="dot" class="dot"></span>
+      <h1>AI Agent Notifier</h1>
+    </header>
+    <div style="padding: 0 14px; margin-top: 8px;">
+      <span id="statusText" class="status-text">проверка...</span>
+    </div>
+
+    <section id="onboarding">
+      <h2>Companion-приложение не найдено</h2>
+      <p class="lead">
+        Расширение само по себе ничего не делает — уведомления шлёт
+        отдельный локальный процесс на этом компьютере. Похоже, он ещё не
+        установлен или не запущен.
+      </p>
+      <ol>
+        <li>Установите зависимости и зарегистрируйте native host — команды
+          в <code>README.md</code> проекта (раздел «Установка»).</li>
+        <li>Перезагрузите это расширение на <code>chrome://extensions</code>.</li>
+        <li>Нажмите «Проверить снова» ниже.</li>
+      </ol>
+      <button id="checkAgain" class="primary" type="button">Проверить снова</button>
+      <div id="checkAgainHint"></div>
+    </section>
+
+    <section class="settings-ui">
+      <h2>Не беспокоить (по проекту)</h2>
+      <select id="snoozeProject"></select>
+      <div class="snooze-row">
+        <button class="chip" data-snooze="30">30 мин</button>
+        <button class="chip" data-snooze="60">1 час</button>
+        <button class="chip" data-snooze="180">3 часа</button>
+      </div>
+      <ul id="snoozeActiveList" class="snooze-active-list"></ul>
+    </section>
+
+    <section class="settings-ui">
+      <h2>Каналы</h2>
+      <table class="channels">
+        <thead>
+          <tr>
+            <th></th>
+            <th class="center">Уведомление</th>
+            <th class="center">Бейдж</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Нужен апрув</td>
+            <td class="center"><input type="checkbox" data-event="permission_request" data-channel="notification" /></td>
+            <td class="center"><input type="checkbox" data-event="permission_request" data-channel="badge" /></td>
+          </tr>
+          <tr>
+            <td>Задача готова</td>
+            <td class="center"><input type="checkbox" data-event="task_done" data-channel="notification" /></td>
+            <td class="center"><input type="checkbox" data-event="task_done" data-channel="badge" /></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="settings-ui">
+      <h2>Таймауты</h2>
+      <div class="field-row">
+        <span>Ждать решения, сек</span>
+        <input type="number" id="permissionTimeoutSec" min="5" max="600" />
+      </div>
+      <div class="field-row">
+        <span>Задержка перед «готово», сек</span>
+        <input type="number" id="stopDebounceSec" min="0" max="600" />
+      </div>
+      <div id="saveHint" class="save-hint"></div>
+      <div class="report-row">
+        <button id="reportIssue" class="ghost" type="button">Скопировать диагностику</button>
+      </div>
+    </section>
+
+    <section class="settings-ui" style="border-bottom: none;">
+      <h2>Последние события</h2>
+      <ul id="log" class="log"></ul>
+    </section>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

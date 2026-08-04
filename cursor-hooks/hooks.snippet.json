@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      { "command": "node E:\\chrome\\ai-agent-notifier\\host\\bin\\notify-agent-cursor.js" }
+    ],
+    "beforeMCPExecution": [
+      { "command": "node E:\\chrome\\ai-agent-notifier\\host\\bin\\notify-agent-cursor.js" }
+    ],
+    "stop": [
+      { "command": "node E:\\chrome\\ai-agent-notifier\\host\\bin\\notify-agent-cursor.js" }
+    ]
+  }
+}
