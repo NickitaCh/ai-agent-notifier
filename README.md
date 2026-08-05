@@ -349,9 +349,10 @@ npm run build:linux   # -> dist/linux/ai-agent-notifier    (не протест�
 ```
 ai-agent-notifier.exe register <EXTENSION_ID> [chrome|chromium|edge|brave]
 ai-agent-notifier.exe unregister [chrome|chromium|edge|brave]
+ai-agent-notifier.exe install                     (или просто двойной клик — см. раздел ниже)
 ```
-Это то, что реально нужно человеку без Node.js — см. раздел ниже
-«Установка для другого человека (только exe, без Node.js)».
+Для человека без Node.js даже `register` не нужен вручную — см. раздел
+ниже «Установка для другого человека (один файл, без Node.js)».
 
 **Регистрация с машины разработчика** (Node.js уже стоит) — тот же
 `register-windows.js`/`register-unix.js`, что и раньше, с флагом `--exe`:
@@ -376,34 +377,32 @@ node install/register-unix.js <EXTENSION_ID> chrome --exe=/path/to/dist/linux/ai
 команда в конфиге меняется на `"<путь>\ai-agent-notifier.exe" notify permission`
 (и аналогично для `done`/`notify-cursor`/`notify-copilot`).
 
-### Установка для другого человека (только exe, без Node.js)
+### Установка для другого человека (один файл, без Node.js)
 
-Для того, кто просто хочет попробовать — без клонирования репозитория и
-без установки Node.js. Нужны две вещи: папка `extension/` и файл
-`ai-agent-notifier.exe`.
+`ai-agent-notifier.exe` сам себе установщик — файлы расширения запечены
+внутрь бинарника (`scripts/embed-extension.js` встраивает `extension/` при
+каждой сборке), а его ID вычисляется заранее из ключа в `manifest.json`
+(тот же алгоритм, что использует сам Chrome для unpacked-расширений с
+`"key"` в манифесте) — значит копировать EXTENSION_ID руками не нужно.
+Нужен только сам `.exe`, папка `extension/` отдельно не нужна.
 
 1. Собери бинарник у себя: `cd host && npm run build:win` →
-   `dist/win/ai-agent-notifier.exe`.
-2. Отправь человеку архивом: папку `extension/` целиком + этот `.exe`
-   (в любом месте на диске — куда положит `.exe`, там же появится
-   `native-host-launcher.bat`, трогать его не нужно).
-3. Человек открывает `chrome://extensions` → включает Developer mode →
-   «Load unpacked» → выбирает папку `extension/` → копирует ID
-   расширения (строка под названием).
-4. Открывает терминал рядом с `.exe` и запускает один раз:
-   ```
-   ai-agent-notifier.exe register <EXTENSION_ID>
-   ```
-   Это одновременно и регистрация native messaging host, и всё, что
-   раньше требовало Node.js — демон при первом реальном событии
-   поднимется сам, отдельно запускать его не нужно.
-5. Подключает хуки своего агента (Claude Code/Cursor/Copilot/Codex) по
-   разделу «Подключить хуки агента» выше — команда в конфиге хука должна
-   указывать на `ai-agent-notifier.exe notify ...` (и т.д.) вместо
-   `node ... notify-agent.js`.
+   `dist/win/ai-agent-notifier.exe`. Отправь человеку этот один файл.
+2. Человек просто **дважды кликает по `.exe`** (или запускает без
+   аргументов). Дальше само:
+   - распаковывает расширение в `%LOCALAPPDATA%\AI Agent Notifier\extension`;
+   - вычисляет его ID и регистрирует native messaging host для Chrome;
+   - открывает `chrome://extensions` и папку с расширением в проводнике;
+   - печатает готовые JSON-сниппеты хуков (Claude Code/Cursor) с уже
+     подставленным реальным путём к `.exe` — можно сразу копировать в
+     конфиг агента.
+3. Единственное, что Chrome сознательно не даёт сделать программно (это
+   его защита от тихой установки расширений) — включить Developer mode и
+   нажать «Load unpacked», указав уже открытую папку. Два клика, и всё.
 
-Если что-то пошло не так — `ai-agent-notifier.exe unregister` снимает
-регистрацию, можно начать заново.
+Демон при первом реальном событии поднимается сам — отдельно запускать
+не нужно. Если что-то пошло не так — `ai-agent-notifier.exe unregister`
+снимает регистрацию, можно начать заново.
 
 ## Почему PermissionRequest/Notification, а не PreToolUse/Stop
 
