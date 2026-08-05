@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "notify-agent permission"
+            "command": "notify-agent permission",
+            "timeout": 600
           }
         ]
       }

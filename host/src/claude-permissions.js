@@ -1,20 +1,26 @@
 'use strict';
 
-// Грубая имитация логики permissions Claude Code (~/.claude/settings.json +
-// текущий permission_mode из хука), чтобы notify-agent не спамил
-// уведомлением на действия, которые агент и так выполнит без вопроса. При
-// любом сомнении решаем в пользу уведомления — лучше лишний раз спросить,
-// чем промолчать про реальный запрос разрешения. В частности: "ask"-правила
-// (точечные исключения поверх allow, например "Bash(rm*)") всегда
-// перекрывают allow.
+// isBlanketlyAllowed сейчас проверяет только режимы, в которых Claude Code
+// АРХИТЕКТУРНО не спрашивает разрешения ни на что (bypassPermissions/auto/
+// dontAsk) или только на конкретный класс инструментов (acceptEdits — но
+// лишь Edit/Write/…). Раньше здесь ещё была своя имитация правил
+// permissions.ask/allow из ~/.claude/settings.json — убрана намеренно
+// (см. ниже), это НЕ откат, а осознанное сужение.
 //
-// Учитываются только глобальные ~/.claude/settings.json — локальные
-// project-level настройки (.claude/settings.json в cwd проекта) пока не
-// читаются (см. README, раздел "Известные ограничения").
-
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
+// Почему: PermissionRequest-хук (в отличие от старого PreToolUse) сам по
+// себе стреляет только тогда, когда Claude Code уже решил, что решение
+// пользователя реально нужно — переигрывать это решение своей копией
+// ask/allow-правил избыточно, когда совпадает, и опасно, когда не
+// совпадает. На практике не совпало дважды: составная Bash-команда внутри
+// широкого allow-правила и mkdir по пути внутри allow-правила, который
+// Claude Code отдельно пометил как "чувствительный путь" (эту проверку
+// правил ask/allow не покрывает вообще, она из другого источника). Оба
+// раза это тихо гасило настоящий запрос на решение. Правило проекта:
+// при сомнении — уведомить, а не промолчать; эта имитация чаще молчала
+// неправильно, чем ловила гипотетический ложный хук.
+//
+// ruleMatches/parseRule/globToRegExp ниже — обычные глоб-утилиты,
+// оставлены и протестированы, но isBlanketlyAllowed их больше не вызывает.
 
 // В этих режимах Claude Code вообще не спрашивает разрешения ни на что —
 // см. документацию хуков (permission_mode в PreToolUse input).
@@ -24,15 +30,6 @@ const NO_PROMPT_MODES = new Set(['bypassPermissions', 'auto', 'dontAsk']);
 // только правки файлов — остальные инструменты (Bash и т.п.) по-прежнему
 // могут спросить.
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit', 'MultiEdit']);
-
-function loadClaudeSettings() {
-  const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
-  try {
-    return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-  } catch {
-    return {};
-  }
-}
 
 function globToRegExp(glob) {
   const escaped = glob.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
@@ -85,22 +82,13 @@ function ruleMatches(rule, toolName, toolInput) {
   return subjectsFor(toolInput).some((subject) => pattern.test(subject));
 }
 
-// claudeSettings — необязательный параметр только для тестов, чтобы не
-// зависеть от реального ~/.claude/settings.json на диске. В проде всегда
-// читается настоящий файл.
-function isBlanketlyAllowed(toolName, toolInput, permissionMode, claudeSettings) {
+function isBlanketlyAllowed(toolName, toolInput, permissionMode) {
   if (!toolName) return false;
 
   if (NO_PROMPT_MODES.has(permissionMode)) return true;
   if (permissionMode === 'acceptEdits' && EDIT_TOOLS.has(toolName)) return true;
 
-  const settings = claudeSettings || loadClaudeSettings();
-  const perms = settings.permissions || {};
-  const askRules = perms.ask || [];
-  const allowRules = perms.allow || [];
-
-  if (askRules.some((r) => ruleMatches(r, toolName, toolInput))) return false;
-  return allowRules.some((r) => ruleMatches(r, toolName, toolInput));
+  return false;
 }
 
 module.exports = {

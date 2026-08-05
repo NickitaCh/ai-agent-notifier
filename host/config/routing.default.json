@@ -7,7 +7,7 @@
     "requireInteraction": true,
     "silent": false
   },
-  "permissionTimeoutMs": 60000,
+  "permissionTimeoutMs": 570000,
   "stopDebounceMs": 20000,
   "permissionExcludeTools": ["Read", "Glob", "Grep", "NotebookRead"],
   "permissionInfoOnlyTools": ["AskUserQuestion"],

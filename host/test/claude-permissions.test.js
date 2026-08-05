@@ -75,61 +75,31 @@ test('ruleMatches: многострочная команда без опасно
 });
 
 test('isBlanketlyAllowed: без tool name -> false (безопасный дефолт, уведомляем)', () => {
-  assert.equal(isBlanketlyAllowed(null, {}, 'default', {}), false);
+  assert.equal(isBlanketlyAllowed(null, {}, 'default'), false);
 });
 
-test('isBlanketlyAllowed: bypassPermissions -> всегда true, независимо от settings.json', () => {
-  assert.equal(isBlanketlyAllowed('AnythingAtAll', {}, 'bypassPermissions', {}), true);
+test('isBlanketlyAllowed: bypassPermissions -> всегда true', () => {
+  assert.equal(isBlanketlyAllowed('AnythingAtAll', {}, 'bypassPermissions'), true);
 });
 
 test('isBlanketlyAllowed: auto и dontAsk тоже считаются "без вопросов"', () => {
-  assert.equal(isBlanketlyAllowed('X', {}, 'auto', {}), true);
-  assert.equal(isBlanketlyAllowed('X', {}, 'dontAsk', {}), true);
+  assert.equal(isBlanketlyAllowed('X', {}, 'auto'), true);
+  assert.equal(isBlanketlyAllowed('X', {}, 'dontAsk'), true);
 });
 
 test('isBlanketlyAllowed: acceptEdits разрешает только tools для правки файлов', () => {
-  assert.equal(isBlanketlyAllowed('Edit', { file_path: 'a.js' }, 'acceptEdits', {}), true);
-  assert.equal(isBlanketlyAllowed('Write', {}, 'acceptEdits', {}), true);
-  assert.equal(isBlanketlyAllowed('Bash', { command: 'echo hi' }, 'acceptEdits', {}), false);
+  assert.equal(isBlanketlyAllowed('Edit', { file_path: 'a.js' }, 'acceptEdits'), true);
+  assert.equal(isBlanketlyAllowed('Write', {}, 'acceptEdits'), true);
+  assert.equal(isBlanketlyAllowed('Bash', { command: 'echo hi' }, 'acceptEdits'), false);
 });
 
-test('isBlanketlyAllowed: default-режим смотрит в permissions.allow', () => {
-  const settings = { permissions: { allow: ['Bash'] } };
-  assert.equal(isBlanketlyAllowed('Bash', { command: 'echo hi' }, 'default', settings), true);
-  assert.equal(isBlanketlyAllowed('Edit', {}, 'default', settings), false);
-});
-
-test('isBlanketlyAllowed: ask-правило перекрывает бланковый allow (ключевая гарантия безопасности)', () => {
-  const settings = {
-    permissions: {
-      allow: ['Bash'],
-      ask: ['Bash(rm*)', 'Bash(sudo*)'],
-    },
-  };
-  assert.equal(isBlanketlyAllowed('Bash', { command: 'echo hi' }, 'default', settings), true);
-  assert.equal(isBlanketlyAllowed('Bash', { command: 'rm -rf /' }, 'default', settings), false);
-  assert.equal(isBlanketlyAllowed('Bash', { command: 'sudo reboot' }, 'default', settings), false);
-});
-
-test('isBlanketlyAllowed: ask-правило ловит rm и внутри составной команды (реальный найденный баг)', () => {
-  // Живой случай: "cd dir && rm -f file && python ..." тихо прошёл как
-  // "безусловно разрешено", потому что rm не в начале всей строки — из-за
-  // этого пропало уведомление, хотя сам Claude Code всё равно спросил.
-  const settings = {
-    permissions: {
-      allow: ['Bash'],
-      ask: ['Bash(rm*)'],
-    },
-  };
-  const command = 'cd /tmp/project && rm -f _stage1.xlsx && python -c "print(1)"';
-  assert.equal(isBlanketlyAllowed('Bash', { command }, 'default', settings), false);
-});
-
-test('isBlanketlyAllowed: инструмент вне allow -> уведомляем (безопасный дефолт)', () => {
-  const settings = { permissions: { allow: ['Bash'] } };
-  assert.equal(isBlanketlyAllowed('WebFetch', { url: 'https://x' }, 'default', settings), false);
-});
-
-test('isBlanketlyAllowed: пустые/отсутствующие permissions в settings.json -> ничего не разрешено бланково', () => {
-  assert.equal(isBlanketlyAllowed('Bash', { command: 'echo hi' }, 'default', {}), false);
+test('isBlanketlyAllowed: default-режим никогда не разрешает бланково (регресс — раньше тут была своя копия permissions.allow)', () => {
+  // Живые случаи, поймавшие баг: составная Bash-команда внутри широкого
+  // allow-правила и mkdir по пути внутри allow-правила, который Claude Code
+  // отдельно пометил "чувствительным" — оба раза наша копия ask/allow-правил
+  // говорила "бланково разрешено" и гасила настоящий запрос на решение.
+  // PermissionRequest сам по себе уже фильтрует по необходимости — своя
+  // копия правил только мешала. Теперь default всегда уведомляет.
+  assert.equal(isBlanketlyAllowed('Bash', { command: 'echo hi' }, 'default'), false);
+  assert.equal(isBlanketlyAllowed('Bash', { command: 'mkdir /home/user/.claude/mcp-servers' }, 'default'), false);
 });
