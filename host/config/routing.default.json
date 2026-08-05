@@ -9,7 +9,7 @@
   },
   "permissionTimeoutMs": 570000,
   "stopDebounceMs": 20000,
-  "permissionExcludeTools": ["Read", "Glob", "Grep", "NotebookRead"],
+  "permissionExcludeTools": [],
   "permissionInfoOnlyTools": ["AskUserQuestion"],
   "snoozeByProject": {}
 }

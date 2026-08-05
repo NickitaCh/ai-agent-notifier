@@ -233,7 +233,7 @@ native messaging.
   "notification": { "requireInteraction": true, "silent": false },
   "permissionTimeoutMs": 570000,
   "stopDebounceMs": 20000,
-  "permissionExcludeTools": ["Read", "Glob", "Grep", "NotebookRead"],
+  "permissionExcludeTools": [],
   "permissionInfoOnlyTools": ["AskUserQuestion"],
   "snoozeByProject": {}
 }
@@ -266,8 +266,17 @@ native messaging.
   уведомление тихо отменяется. `permission_request` эта задержка не
   касается — уведомление о
   запросе разрешения всегда уходит немедленно.
-- `permissionExcludeTools` — инструменты, которые не считаются требующими
-  внимания, даже если формально не в allow-листе (см. раздел ниже).
+- `permissionExcludeTools` — ручной оверрайд: инструменты, для которых
+  уведомление не нужно, даже если Claude Code всё-таки вызвал
+  `PermissionRequest`. Пусто по умолчанию — раньше здесь жили `Read`,
+  `Glob`, `Grep`, `NotebookRead` (наследие эры `PreToolUse`, когда хук
+  стрелял на каждый вызов и эти read-only инструменты создавали спам).
+  С `PermissionRequest` этот спам не воспроизводится: хук и так стреляет
+  только когда решение реально нужно, а `Read` эту планку тоже проходит —
+  например, при обращении к пути вне разрешённых директорий (см. раздел
+  выше про `isBlanketlyAllowed`, где это дважды поймано вживую и молча
+  гасило настоящий запрос). Если после этого изменения появится реальный
+  спам от конкретного инструмента — впишите его сюда через popup.
 - `permissionInfoOnlyTools` — инструменты вроде `AskUserQuestion`: не
   «разрешить/отклонить», агент сам показывает варианты ответа в терминале.
   Уведомление для них информационное, без кнопок, хук не ждёт решения.
