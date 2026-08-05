@@ -11,5 +11,6 @@
   "stopDebounceMs": 20000,
   "permissionExcludeTools": [],
   "permissionInfoOnlyTools": ["AskUserQuestion"],
-  "snoozeByProject": {}
+  "snoozeByProject": {},
+  "sessionNames": {}
 }

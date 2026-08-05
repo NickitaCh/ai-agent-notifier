@@ -107,6 +107,7 @@ async function handlePermission(hookEventName, input) {
   const event = {
     id: randomUUID(),
     type: 'permission_request',
+    agent: 'cursor',
     tool: hookEventName === 'beforeMCPExecution' ? input.tool_name || 'MCP' : 'Shell',
     summary: summarize(hookEventName, input),
     cwd: resolveCwd(input),
@@ -121,6 +122,7 @@ async function handleStop(input) {
   const event = {
     id: randomUUID(),
     type: 'task_done',
+    agent: 'cursor',
     cwd: resolveCwd(input),
     sessionId: input.conversation_id || null,
     ts: Date.now(),

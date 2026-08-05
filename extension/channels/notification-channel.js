@@ -11,16 +11,41 @@
 // Последний сегмент пути часто бесполезен как ярлык ("src", "host", "app") —
 // в таком случае добавляем ещё и родительскую папку для контекста.
 const GENERIC_FOLDER_NAMES = new Set(['src', 'host', 'app', 'bin', 'lib', 'server', 'client', 'backend', 'frontend', 'web', 'core', 'test', 'tests', 'dist', 'build']);
+// Папки, из которых имя проекта извлечь нельзя (домашний каталог и т.п.) —
+// в этом случае считаем cwd неинформативным и не показываем его вовсе,
+// вместо бесполезного "Nick"/"Users".
+const UNINFORMATIVE_LEAF_NAMES = new Set(['nick', 'users', 'home', 'desktop', 'documents', 'downloads']);
+
+const AGENT_LABELS = { claude: 'Claude Code', cursor: 'Cursor', copilot: 'Copilot', codex: 'Codex' };
 
 function projectLabel(cwd) {
   if (!cwd) return '';
   const parts = cwd.split(/[\\/]/).filter(Boolean);
   if (!parts.length) return cwd;
   const last = parts[parts.length - 1];
+  if (UNINFORMATIVE_LEAF_NAMES.has(last.toLowerCase())) return '';
   if (parts.length > 1 && GENERIC_FOLDER_NAMES.has(last.toLowerCase())) {
     return `${parts[parts.length - 2]}/${last}`;
   }
   return last;
+}
+
+// Несколько сессий одного агента могут крутиться в одном и том же проекте
+// одновременно — метка по cwd их не различает, поэтому к автоматической
+// метке всегда добавляется короткий суффикс sessionId. Ручное имя из
+// popup (event.sessionLabel, см. router.js) полностью его заменяет —
+// раз пользователь сам назвал сессию, ему не нужен технический суффикс.
+function sessionDisplayLabel(event) {
+  if (event.sessionLabel) return event.sessionLabel;
+
+  const agent = AGENT_LABELS[event.agent] || '';
+  const project = projectLabel(event.cwd);
+  const shortId = event.sessionId ? event.sessionId.replace(/-/g, '').slice(0, 4) : '';
+
+  const place = project || (shortId ? `сессия ${shortId}` : '');
+  const withId = project && shortId ? `${place} · ${shortId}` : place;
+
+  return [agent, withId].filter(Boolean).join(' · ');
 }
 
 function show(event, options = {}) {
@@ -29,13 +54,13 @@ function show(event, options = {}) {
   // показывает варианты ответа в терминале. Кнопки здесь не имеют смысла —
   // просто информируем, что нужно вернуться и ответить там.
   const isActionable = isPermission && event.needsDecision !== false;
-  const project = projectLabel(event.cwd);
+  const label = sessionDisplayLabel(event);
 
   let title;
   if (isActionable) title = 'Агент просит разрешение';
   else if (isPermission) title = 'Агент задал вопрос';
   else title = 'Агент закончил';
-  title += project ? ` — ${project}` : '';
+  title += label ? ` — ${label}` : '';
 
   let message;
   if (isPermission) message = event.summary || event.tool || 'требуется ваше внимание';

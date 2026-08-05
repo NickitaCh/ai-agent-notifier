@@ -118,6 +118,41 @@ test('dispatch: «не беспокоить» для конкретного cwd 
   ]);
 });
 
+test('dispatch: подставляет sessionLabel из settings.sessionNames по sessionId события', async () => {
+  let seenEvent;
+  await withMocks(
+    [
+      [
+        settingsStore,
+        'load',
+        () => ({
+          rules: { task_done: ['badge'] },
+          sessionNames: { 'sess-1': 'мой бот' },
+        }),
+      ],
+      [extensionChannel, 'sendBadge', async (event) => { seenEvent = event; }],
+    ],
+    async () => {
+      await router.dispatch({ id: 'ev7', type: 'task_done', sessionId: 'sess-1' });
+    }
+  );
+  assert.equal(seenEvent.sessionLabel, 'мой бот');
+});
+
+test('dispatch: без записи в sessionNames sessionLabel не проставляется', async () => {
+  let seenEvent;
+  await withMocks(
+    [
+      [settingsStore, 'load', () => ({ rules: { task_done: ['badge'] }, sessionNames: { 'sess-1': 'мой бот' } })],
+      [extensionChannel, 'sendBadge', async (event) => { seenEvent = event; }],
+    ],
+    async () => {
+      await router.dispatch({ id: 'ev8', type: 'task_done', sessionId: 'sess-other' });
+    }
+  );
+  assert.equal(seenEvent.sessionLabel, undefined);
+});
+
 test('dispatch: snoozeByProject в прошлом не подавляет ничего', async () => {
   const calls = [];
   await withMocks(

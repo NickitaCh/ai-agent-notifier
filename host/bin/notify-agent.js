@@ -170,6 +170,7 @@ async function runPermission() {
   const event = {
     id: randomUUID(),
     type: 'permission_request',
+    agent: 'claude',
     tool: hookInput.tool_name || null,
     summary: summarizeToolInput(hookInput.tool_name, hookInput.tool_input),
     cwd: hookInput.cwd || process.cwd(),
@@ -203,6 +204,7 @@ async function runDone() {
   const event = {
     id: randomUUID(),
     type: 'task_done',
+    agent: 'claude',
     cwd: hookInput.cwd || process.cwd(),
     sessionId: hookInput.session_id || null,
     ts: Date.now(),

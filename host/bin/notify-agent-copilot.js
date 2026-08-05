@@ -112,6 +112,7 @@ async function runPermission() {
   const event = {
     id: randomUUID(),
     type: 'permission_request',
+    agent: 'copilot',
     tool: input.toolName || null,
     summary: summarizeToolArgs(input.toolName, input.toolArgs),
     cwd: input.cwd || process.cwd(),
@@ -131,6 +132,7 @@ async function runDone() {
   const event = {
     id: randomUUID(),
     type: 'task_done',
+    agent: 'copilot',
     cwd: input.cwd || process.cwd(),
     sessionId: input.sessionId || null,
     ts: Date.now(),

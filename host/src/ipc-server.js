@@ -134,6 +134,9 @@ function applySettingsPatch(patch) {
     ...patch,
     rules: { ...current.rules, ...(patch.rules || {}) },
     snoozeByProject: mergeSnoozeByProject(current.snoozeByProject, patch.snoozeByProject),
+    // mergeSnoozeByProject не завязана на семантику "проект" — обычный
+    // JSON Merge Patch по карте sessionId -> имя, используем ту же функцию.
+    sessionNames: mergeSnoozeByProject(current.sessionNames, patch.sessionNames),
   };
   settingsStore.save(merged);
   return merged;

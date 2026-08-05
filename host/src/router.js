@@ -30,6 +30,13 @@ async function dispatch(event) {
     return;
   }
 
+  // Разрешаем пользовательское имя сессии здесь (не в расширении), чтобы
+  // extension/channels/notification-channel.js оставался тупым — ему
+  // достаточно event.sessionLabel, если он есть, вместо того чтобы тащить
+  // туда всю карту sessionNames.
+  const customName = event.sessionId && (settings.sessionNames || {})[event.sessionId];
+  if (customName) event.sessionLabel = customName;
+
   const channelNames = settings.rules[event.type] || [];
   console.error(`[router] dispatch ${event.type} id=${event.id} -> [${channelNames.join(', ')}]`);
   for (const name of channelNames) {

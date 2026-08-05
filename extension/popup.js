@@ -20,6 +20,27 @@ const EXTENSION_PROTOCOL_VERSION = 1;
 
 // cwd последних событий — источник списка проектов для выбора "не беспокоить".
 let knownProjects = [];
+// sessionId последних событий -> { agent, cwd } — источник списка сессий
+// для ручного нейминга. Map, а не массив, — обновляется на каждый refresh,
+// новые события по тому же sessionId просто перезаписывают запись.
+let knownSessions = new Map();
+let currentSessionNames = {};
+
+// Дубль AGENT_LABELS/логики короткого id из
+// extension/channels/notification-channel.js — тот же повод, что и для
+// projectLabel (popup и background/notification-channel — разные контексты).
+const AGENT_LABELS = { claude: 'Claude Code', cursor: 'Cursor', copilot: 'Copilot', codex: 'Codex' };
+function shortSessionId(sessionId) {
+  return sessionId ? sessionId.replace(/-/g, '').slice(0, 4) : '';
+}
+function autoSessionLabel(sessionId, info) {
+  const agent = AGENT_LABELS[info.agent] || '';
+  const project = projectLabel(info.cwd);
+  const shortId = shortSessionId(sessionId);
+  const place = project !== '(без папки)' ? project : (shortId ? `сессия ${shortId}` : '');
+  const withId = place && shortId ? `${place} · ${shortId}` : place;
+  return [agent, withId].filter(Boolean).join(' · ') || 'неизвестная сессия';
+}
 
 function sendMessage(msg) {
   return new Promise((resolve) => chrome.runtime.sendMessage(msg, resolve));
@@ -82,6 +103,35 @@ function renderActiveSnoozes(snoozeByProject) {
   }
 }
 
+const sessionsList = document.getElementById('sessionsList');
+
+function renderSessionsList() {
+  sessionsList.innerHTML = '';
+  if (!knownSessions.size) {
+    sessionsList.innerHTML = '<li class="empty">нет недавних сессий</li>';
+    return;
+  }
+  for (const [sessionId, info] of knownSessions) {
+    const li = document.createElement('li');
+
+    const auto = document.createElement('span');
+    auto.className = 'auto-label';
+    auto.textContent = autoSessionLabel(sessionId, info);
+    auto.title = info.cwd || '';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'своё имя для этой сессии…';
+    input.value = currentSessionNames[sessionId] || '';
+    input.addEventListener('change', () => {
+      patchSettings({ sessionNames: { [sessionId]: input.value.trim() || null } });
+    });
+
+    li.append(auto, input);
+    sessionsList.appendChild(li);
+  }
+}
+
 function showSaveHint(text) {
   saveHint.textContent = text;
   saveHint.classList.add('show');
@@ -104,6 +154,9 @@ function renderSettings(settings) {
   stopDebounceInput.value = Math.round((settings.stopDebounceMs ?? 20000) / 1000);
 
   renderActiveSnoozes(settings.snoozeByProject);
+
+  currentSessionNames = settings.sessionNames || {};
+  renderSessionsList();
 }
 
 async function loadSettings() {
@@ -198,6 +251,18 @@ async function refreshStatus() {
     }
   }
   populateProjectSelect();
+
+  // Сессии для ручного нейминга — тоже из недавних событий, самое свежее
+  // событие по sessionId выигрывает (res.lastEvents уже отсортирован
+  // от нового к старому, см. background.js).
+  knownSessions = new Map();
+  for (const item of res.lastEvents) {
+    const sessionId = item.event?.sessionId;
+    if (sessionId && !knownSessions.has(sessionId)) {
+      knownSessions.set(sessionId, { agent: item.event?.agent, cwd: item.event?.cwd });
+    }
+  }
+  renderSessionsList();
 
   return res;
 }

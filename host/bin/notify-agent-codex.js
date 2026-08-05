@@ -113,6 +113,7 @@ async function main() {
   const event = {
     id: randomUUID(),
     type: 'permission_request',
+    agent: 'codex',
     tool: toolName,
     summary: summarize(toolName, toolInput),
     cwd,
