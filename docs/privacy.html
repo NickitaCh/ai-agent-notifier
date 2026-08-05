@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Agent Notifier — Privacy Policy</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔒</text></svg>" />
+<style>
+  :root {
+    --paper: #f1f2ee;
+    --paper-raised: #ffffff;
+    --ink: #1c1f1e;
+    --muted: #63665f;
+    --accent: #2b5d63;
+    --accent-soft: #dceae7;
+    --line: #d8d9d2;
+    --good: #3f7d5c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #14161a;
+      --paper-raised: #1b1e22;
+      --ink: #ededea;
+      --muted: #9aa09a;
+      --accent: #7ec1c2;
+      --accent-soft: #1e3a3a;
+      --line: #2b2e31;
+      --good: #6fbf95;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  body {
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+    line-height: 1.6;
+  }
+  ::selection { background: var(--accent-soft); }
+
+  .wrap {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 64px 24px 96px;
+  }
+
+  header.doc-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--line);
+  }
+  .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+  }
+  .mark .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--good);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    flex-shrink: 0;
+  }
+  .head-right { display: flex; align-items: center; gap: 14px; }
+  .doc-meta {
+    text-align: right;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .lang-toggle {
+    display: flex;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 2px;
+    background: var(--paper-raised);
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  }
+  .lang-toggle button {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 5px 12px;
+    border-radius: 16px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .lang-toggle button.active { background: var(--accent); color: var(--paper); }
+  .lang-toggle button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  h1 {
+    font-size: clamp(28px, 4.2vw, 38px);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  .subtitle {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 14.5px;
+    color: var(--muted);
+    margin: 0;
+    max-width: 46ch;
+  }
+
+  .lede {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 17px;
+    line-height: 1.65;
+    color: var(--ink);
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 20px 22px;
+    margin: 0 0 44px;
+  }
+  .lede strong { color: var(--accent); font-weight: 600; }
+
+  section { margin-bottom: 40px; }
+  h2 {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--muted);
+    margin: 0 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  p { font-size: 15.5px; margin: 0 0 14px; max-width: 62ch; }
+  p:last-child { margin-bottom: 0; }
+
+  ul.checks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  ul.checks li {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 14.5px;
+  }
+  ul.checks li:last-child { border-bottom: none; }
+  ul.checks .glyph {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    color: var(--good);
+  }
+  ul.checks b { font-weight: 600; }
+  ul.checks span.detail { color: var(--muted); }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 22px 0 4px;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 12px;
+  }
+  .flow .node {
+    padding: 9px 14px;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .flow .node.you { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .flow .arrow {
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+    position: relative;
+    min-width: 20px;
+  }
+  .flow .arrow::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: -3px;
+    width: 6px;
+    height: 6px;
+    border-right: 1px solid var(--muted);
+    border-bottom: 1px solid var(--muted);
+    transform: rotate(-45deg);
+  }
+  .flow-caption {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .flow-blocked {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 10px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 10.5px;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  code {
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 0.87em;
+    background: var(--accent-soft);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+  footer a:hover { color: var(--accent); }
+
+  /* i18n: toggle whole language blocks by data-lang on <html> */
+  html[data-lang="en"] .i18n-ru { display: none !important; }
+  html[data-lang="ru"] .i18n-en { display: none !important; }
+
+  @media (max-width: 520px) {
+    header.doc-head { flex-direction: column; gap: 10px; }
+    .head-right { align-self: flex-start; }
+    .doc-meta { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="doc-head">
+    <div class="mark"><span class="dot"></span>AI&nbsp;AGENT&nbsp;NOTIFIER</div>
+    <div class="head-right">
+      <div class="doc-meta">
+        <span class="i18n-en">Privacy Policy<br />Updated 2026-08-05</span>
+        <span class="i18n-ru">Политика конфиденциальности<br />Обновлено 05.08.2026</span>
+      </div>
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button type="button" data-set-lang="en">EN</button>
+        <button type="button" data-set-lang="ru">RU</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="i18n-en">
+    <h1>Nothing leaves your computer.</h1>
+    <p class="subtitle">
+      This policy is short because the product is simple: a local extension
+      talking to a local process, with no server on the other end.
+    </p>
+
+    <p class="lede">
+      <strong>AI Agent Notifier does not collect, store, transmit, or sell
+      any user data.</strong> There is no backend, no analytics, and no
+      network communication of any kind beyond messages your own computer
+      sends to itself.
+    </p>
+
+    <section>
+      <h2>What the extension does</h2>
+      <p>
+        AI Agent Notifier pairs a Chrome extension with a small companion
+        program (the &ldquo;host&rdquo;) that you install and run on your
+        own machine. The host listens for hook events from AI coding agents
+        &mdash; Claude Code, Cursor, GitHub Copilot CLI, OpenAI Codex CLI
+        &mdash; running locally, and the extension shows a notification or
+        badge when an agent needs your attention.
+      </p>
+    </section>
+
+    <section>
+      <h2>Where the data actually goes</h2>
+      <div class="flow">
+        <div class="node you">Coding agent</div>
+        <div class="arrow"></div>
+        <div class="node">host process</div>
+        <div class="arrow"></div>
+        <div class="node you">Chrome notification</div>
+      </div>
+      <p class="flow-caption">
+        All three run on <code>127.0.0.1</code> &mdash; your machine.
+        <span class="flow-blocked">✕ no step leaves the device</span>
+      </p>
+    </section>
+
+    <section>
+      <h2>Specifically</h2>
+      <ul class="checks">
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>Minimal permissions.</b> <span class="detail">Only <code>nativeMessaging</code>, <code>notifications</code>, and <code>alarms</code> &mdash; no <code>tabs</code>, <code>scripting</code>, or <code>host_permissions</code>, so the extension cannot read page content or browsing history.</span></span>
+        </li>
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>No outbound network code.</b> <span class="detail">The extension's source contains no <code>fetch</code>, <code>XMLHttpRequest</code>, or any other call that reaches the internet.</span></span>
+        </li>
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>Local-only transport.</b> <span class="detail">Extension and host talk over a TCP socket on <code>127.0.0.1:8765</code>, protected by a random token generated on first run and stored in your local profile. It never accepts a connection from outside the machine.</span></span>
+        </li>
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>Logs stay put.</b> <span class="detail">Tool names, working-directory paths, and short summaries of what an agent is asking are written only to local log files (<code>%APPDATA%\ai-agent-notifier\*.log</code> and platform equivalents), for your own troubleshooting.</span></span>
+        </li>
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>Diagnostics are opt-in, every time.</b> <span class="detail">The popup's &ldquo;Copy diagnostics&rdquo; button copies a local log excerpt to your clipboard on click, for you to paste wherever you choose. Nothing uploads automatically.</span></span>
+        </li>
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>No accounts.</b> <span class="detail">No sign-in and no persistent identifier tied to you beyond the random local auth token above.</span></span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Third parties</h2>
+      <p>
+        None. No analytics SDKs, crash reporters, ad networks, or other
+        third-party services are integrated into the extension or the host.
+      </p>
+    </section>
+
+    <section>
+      <h2>Changes to this policy</h2>
+      <p>
+        If this ever changes &mdash; for example, an optional future
+        notification channel that requires a network call &mdash; this
+        document will be updated first, the change described in the
+        project&rsquo;s README, and the revision history kept visible in
+        the GitHub repository.
+      </p>
+    </section>
+
+    <section>
+      <h2>Contact</h2>
+      <p>
+        This is an independent, open-source project. Questions or concerns
+        can be raised via
+        <a href="https://github.com/NickitaCh/ai-agent-notifier/issues" target="_blank" rel="noopener">GitHub Issues</a>
+        on the project repository.
+      </p>
+    </section>
+  </div>
+
+  <div class="i18n-ru">
+    <h1>С вашего компьютера ничего не уходит.</h1>
+    <p class="subtitle">
+      Эта политика короткая, потому что продукт простой: локальное
+      расширение общается с локальным процессом, и на другом конце нет
+      никакого сервера.
+    </p>
+
+    <p class="lede">
+      <strong>AI Agent Notifier не собирает, не хранит, не передаёт и не
+      продаёт никакие пользовательские данные.</strong> У расширения нет
+      бэкенда, нет аналитики и нет никакой сетевой активности, кроме
+      сообщений, которые ваш компьютер отправляет сам себе.
+    </p>
+
+    <section>
+      <h2>Что делает расширение</h2>
+      <p>
+        AI Agent Notifier связывает расширение Chrome с небольшой
+        программой-компаньоном (&laquo;хостом&raquo;), которую вы сами
+        устанавливаете и запускаете на своей машине. Хост слушает события
+        хуков от ИИ-агентов для программирования &mdash; Claude Code,
+        Cursor, GitHub Copilot CLI, OpenAI Codex CLI &mdash; работающих
+        локально, а расширение показывает уведомление или бейдж, когда
+        агенту нужно ваше внимание.
+      </p>
+    </section>
+
+    <section>
+      <h2>Куда реально уходят данные</h2>
+      <div class="flow">
+        <div class="node you">ИИ-агент</div>
+        <div class="arrow"></div>
+        <div class="node">процесс-хост</div>
+        <div class="arrow"></div>
+        <div class="node you">Уведомление Chrome</div>
+      </div>
+      <p class="flow-caption">
+        Все три части работают на <code>127.0.0.1</code> &mdash; вашей машине.
+        <span class="flow-blocked">✕ ни один шаг не покидает устройство</span>
+      </p>
+    </section>
+
+    <section>
+      <h2>Конкретно</h2>
+      <ul class="checks">
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>Минимум разрешений.</b> <span class="detail">Только <code>nativeMessaging</code>, <code>notifications</code> и <code>alarms</code> &mdash; без <code>tabs</code>, <code>scripting</code> или <code>host_permissions</code>, поэтому расширение не может читать содержимое страниц или историю браузера.</span></span>
+        </li>
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>Никакого исходящего сетевого кода.</b> <span class="detail">В исходном коде расширения нет ни <code>fetch</code>, ни <code>XMLHttpRequest</code>, ни любого другого вызова, который выходит в интернет.</span></span>
+        </li>
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>Только локальный транспорт.</b> <span class="detail">Расширение и хост общаются через TCP-сокет на <code>127.0.0.1:8765</code>, защищённый случайным токеном, который генерируется при первом запуске и хранится в вашем локальном профиле. Соединения снаружи машины не принимаются.</span></span>
+        </li>
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>Логи остаются на месте.</b> <span class="detail">Имена инструментов, пути рабочих директорий и короткие сводки того, о чём спрашивает агент, записываются только в локальные файлы логов (<code>%APPDATA%\ai-agent-notifier\*.log</code> и аналоги на других платформах) &mdash; для вашей же диагностики.</span></span>
+        </li>
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>Диагностика &mdash; только по вашему клику.</b> <span class="detail">Кнопка &laquo;Скопировать диагностику&raquo; в popup копирует выдержку из локального лога в буфер обмена по вашему нажатию, чтобы вы сами вставили её куда захотите. Автоматической отправки нет.</span></span>
+        </li>
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>Без аккаунтов.</b> <span class="detail">Нет входа и нет постоянного идентификатора, привязанного к вам, кроме случайного локального токена авторизации, описанного выше.</span></span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Третьи стороны</h2>
+      <p>
+        Их нет. В расширение и хост не встроены ни SDK аналитики, ни
+        сборщики крашей, ни рекламные сети, ни какие-либо другие сторонние
+        сервисы.
+      </p>
+    </section>
+
+    <section>
+      <h2>Изменения политики</h2>
+      <p>
+        Если это когда-нибудь изменится &mdash; например, появится
+        опциональный канал уведомлений, требующий сетевого вызова &mdash;
+        этот документ будет обновлён в первую очередь, изменение будет
+        описано в README проекта, а история версий останется видна в
+        репозитории на GitHub.
+      </p>
+    </section>
+
+    <section>
+      <h2>Контакты</h2>
+      <p>
+        Это независимый open-source проект. Вопросы и замечания можно
+        оставить через
+        <a href="https://github.com/NickitaCh/ai-agent-notifier/issues" target="_blank" rel="noopener">GitHub Issues</a>
+        в репозитории проекта.
+      </p>
+    </section>
+  </div>
+
+  <footer>
+    <span class="i18n-en">AI Agent Notifier &mdash; MIT licensed</span>
+    <span class="i18n-ru">AI Agent Notifier &mdash; лицензия MIT</span>
+    <a href="https://github.com/NickitaCh/ai-agent-notifier" target="_blank" rel="noopener">github.com/NickitaCh/ai-agent-notifier</a>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var buttons = document.querySelectorAll('[data-set-lang]');
+    function apply(lang) {
+      root.setAttribute('data-lang', lang);
+      buttons.forEach(function (b) {
+        b.classList.toggle('active', b.dataset.setLang === lang);
+      });
+      document.title = lang === 'ru'
+        ? 'AI Agent Notifier — Политика конфиденциальности'
+        : 'AI Agent Notifier — Privacy Policy';
+      try { localStorage.setItem('aan-privacy-lang', lang); } catch (e) {}
+    }
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () { apply(b.dataset.setLang); });
+    });
+    var saved = null;
+    try { saved = localStorage.getItem('aan-privacy-lang'); } catch (e) {}
+    apply(saved === 'ru' ? 'ru' : 'en');
+  })();
+</script>
+</body>
+</html>
