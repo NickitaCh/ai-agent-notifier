@@ -202,6 +202,10 @@ async function refreshStatus() {
   return res;
 }
 
+document.getElementById('openWelcome').addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
+});
+
 const checkAgainBtn = document.getElementById('checkAgain');
 const checkAgainHint = document.getElementById('checkAgainHint');
 checkAgainBtn.addEventListener('click', async () => {

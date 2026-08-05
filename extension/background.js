@@ -100,7 +100,15 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.runtime.onStartup.addListener(connect);
-chrome.runtime.onInstalled.addListener(connect);
+chrome.runtime.onInstalled.addListener((details) => {
+  connect();
+  // Только на свежую установку (не апдейт) — человек из Chrome Web Store
+  // ещё не знает, что нужен отдельный компаньон на диске; открываем
+  // это сразу, а не ждём, что он сам разберётся через иконку в панели.
+  if (details.reason === 'install') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
+  }
+});
 connect();
 
 // Сообщения от popup.js.

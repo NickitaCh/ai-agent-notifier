@@ -1,0 +1,170 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>AI Agent Notifier — установка</title>
+    <style>
+      :root {
+        --paper: #f1f2ee;
+        --paper-raised: #ffffff;
+        --ink: #1c1f1e;
+        --muted: #63665f;
+        --accent: #2b5d63;
+        --accent-soft: #dceae7;
+        --line: #d8d9d2;
+        --warn: #b8792a;
+        --warn-soft: #f5ead8;
+        --good: #3f7d5c;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #14161a;
+          --paper-raised: #1b1e22;
+          --ink: #ededea;
+          --muted: #9aa09a;
+          --accent: #7ec1c2;
+          --accent-soft: #1e3a3a;
+          --line: #2b2e31;
+          --warn: #e0a855;
+          --warn-soft: #362508;
+          --good: #6fbf95;
+        }
+      }
+
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      .wrap { max-width: 640px; margin: 0 auto; padding: 48px 24px 80px; }
+
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 36px;
+      }
+      header img { width: 40px; height: 40px; }
+      header h1 { font-size: 18px; font-weight: 700; margin: 0; }
+
+      .dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: var(--warn); flex-shrink: 0; display: inline-block;
+      }
+      .dot.on { background: var(--good); }
+
+      .status-strip {
+        display: flex; align-items: center; gap: 10px;
+        background: var(--paper-raised); border: 1px solid var(--line);
+        border-radius: 8px; padding: 12px 16px; margin-bottom: 32px;
+        font-size: 13px;
+      }
+      .status-strip span.label { flex: 1; color: var(--muted); }
+      .status-strip button {
+        font-size: 12px; padding: 5px 12px; border-radius: 6px;
+        border: 1px solid var(--line); background: var(--paper-raised);
+        color: var(--ink); cursor: pointer;
+      }
+      .status-strip button:hover { border-color: var(--accent); color: var(--accent); }
+
+      h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 10px; text-wrap: balance; }
+      p.lead { font-size: 14.5px; color: var(--muted); max-width: 54ch; margin: 0 0 28px; line-height: 1.6; }
+
+      a.download-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: var(--accent); color: var(--paper);
+        font-size: 14px; font-weight: 600; text-decoration: none;
+        padding: 12px 22px; border-radius: 8px; margin-bottom: 8px;
+      }
+      a.download-btn:hover { opacity: 0.92; }
+      .download-hint { font-size: 12px; color: var(--muted); margin: 0 0 36px; }
+
+      ol.steps { list-style: none; margin: 0 0 36px; padding: 0; counter-reset: step; }
+      ol.steps li {
+        counter-increment: step;
+        display: grid;
+        grid-template-columns: 30px 1fr;
+        gap: 3px 14px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      ol.steps li:last-child { border-bottom: none; }
+      ol.steps li::before {
+        content: counter(step);
+        grid-row: 1 / span 2;
+        font-size: 12.5px; font-weight: 700; color: var(--accent);
+        background: var(--accent-soft);
+        width: 24px; height: 24px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .step-title { font-size: 14.5px; font-weight: 600; align-self: center; }
+      .step-detail { font-size: 13px; color: var(--muted); line-height: 1.5; }
+      .step-detail code {
+        font-family: ui-monospace, "SF Mono", Consolas, monospace;
+        font-size: 0.92em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px;
+      }
+
+      .advanced {
+        font-size: 12.5px; color: var(--muted);
+        background: var(--paper-raised); border: 1px solid var(--line);
+        border-radius: 8px; padding: 14px 16px;
+      }
+      .advanced a { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <img src="icons/icon48.png" alt="" />
+        <h1>AI Agent Notifier</h1>
+      </header>
+
+      <div class="status-strip">
+        <span class="dot" id="dot"></span>
+        <span class="label" id="statusText">проверка связи с компаньоном…</span>
+        <button id="recheck" type="button">Проверить снова</button>
+      </div>
+
+      <h2>Ещё один шаг — и готово</h2>
+      <p class="lead">
+        Само расширение уведомления не отправляет — этим занимается
+        небольшая программа-компаньон на вашем компьютере: именно она
+        слушает вашего AI-агента и решает, когда стоит вас отвлечь.
+        Без неё расширение просто ничего не будет делать.
+      </p>
+
+      <a class="download-btn" id="downloadBtn" href="https://github.com/NickitaCh/ai-agent-notifier/releases/latest/download/ai-agent-notifier.exe" target="_blank" rel="noopener">
+        ⬇ Скачать компаньон (Windows, ~55 МБ)
+      </a>
+      <p class="download-hint">Один файл. Ничего устанавливать в систему не нужно.</p>
+
+      <ol class="steps">
+        <li>
+          <div class="step-title">Скачайте и дважды кликните файл</div>
+          <div class="step-detail">Он сам распакует расширение, зарегистрирует компаньон и откроет нужные окна — ничего печатать в консоли не придётся.</div>
+        </li>
+        <li>
+          <div class="step-title">В открывшемся окне chrome://extensions включите Developer mode</div>
+          <div class="step-detail">Переключатель в правом верхнем углу страницы. Это разово и безопасно — Chrome специально требует это для расширений не из магазина, чтобы никто не мог поставить их тихо.</div>
+        </li>
+        <li>
+          <div class="step-title">«Load unpacked» → выберите уже открытую папку</div>
+          <div class="step-detail">Установщик сам откроет её в проводнике — просто выберите ту же папку в диалоге Chrome.</div>
+        </li>
+        <li>
+          <div class="step-title">Подключите хуки своего агента</div>
+          <div class="step-detail">Установщик напечатает готовый сниппет с уже подставленным путём — останется вставить его в конфиг Claude Code/Cursor/Copilot/Codex.</div>
+        </li>
+      </ol>
+
+      <div class="advanced">
+        Уже есть Node.js и хотите поставить из исходников, или нужна версия
+        для macOS/Linux? Полная инструкция — в
+        <a href="https://github.com/NickitaCh/ai-agent-notifier#readme" target="_blank" rel="noopener">README проекта</a>.
+      </div>
+    </div>
+    <script src="welcome.js"></script>
+  </body>
+</html>
