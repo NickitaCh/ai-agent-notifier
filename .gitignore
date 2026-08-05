@@ -11,6 +11,9 @@ host/install/native-host-launcher.bat
 host/install/native-host-launcher.sh
 host/install/*.generated.json
 
+# снимок extension/ для standalone-сборки, пересоздаётся перед каждым build:*
+host/src/embedded-extension.js
+
 # логи, ОС-мусор
 *.log
 .DS_Store

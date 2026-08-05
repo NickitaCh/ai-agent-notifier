@@ -18,5 +18,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
         working-directory: host
+      - run: npm run embed:extension
+        working-directory: host
       - run: npm test
         working-directory: host

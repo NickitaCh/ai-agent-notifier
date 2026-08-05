@@ -16,6 +16,7 @@
 //   aan notify-codex                                       (OpenAI Codex CLI, только deny имеет эффект)
 //   aan register <EXTENSION_ID> [chrome|chromium|edge|brave]   (Windows: без Node.js)
 //   aan unregister [chrome|chromium|edge|brave]
+//   aan install                                            (то же самое, что и просто двойной клик по exe)
 
 const command = process.argv[2];
 const rest = process.argv.slice(3);
@@ -58,7 +59,14 @@ switch (command) {
   case 'unregister':
     require('../install/register-standalone').unregister(rest[0] || 'chrome');
     break;
+  case 'install':
+  case undefined:
+    // Голый двойной клик по exe (без аргументов) — самый частый случай для
+    // человека, которому просто прислали файл, поэтому это и есть install,
+    // а не сообщение "использование:" в мгновенно закрывшемся окне.
+    require('../src/installer').install();
+    break;
   default:
-    console.error('Использование: aan <daemon|bridge|notify|notify-cursor|notify-copilot|notify-codex|register|unregister> [...]');
+    console.error('Использование: aan <daemon|bridge|notify|notify-cursor|notify-copilot|notify-codex|register|unregister|install> [...]');
     process.exit(1);
 }

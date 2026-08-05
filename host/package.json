@@ -18,9 +18,10 @@
     "unregister:windows": "node install/unregister-windows.js",
     "register:unix": "node install/register-unix.js",
     "unregister:unix": "node install/unregister-unix.js",
-    "build:win": "pkg bin/aan.js --target node22-win-x64 --output dist/win/ai-agent-notifier.exe",
-    "build:mac": "pkg bin/aan.js --target node22-macos-x64 --output dist/mac/ai-agent-notifier",
-    "build:linux": "pkg bin/aan.js --target node22-linux-x64 --output dist/linux/ai-agent-notifier"
+    "embed:extension": "node scripts/embed-extension.js",
+    "build:win": "npm run embed:extension && pkg bin/aan.js --target node22-win-x64 --output dist/win/ai-agent-notifier.exe",
+    "build:mac": "npm run embed:extension && pkg bin/aan.js --target node22-macos-x64 --output dist/mac/ai-agent-notifier",
+    "build:linux": "npm run embed:extension && pkg bin/aan.js --target node22-linux-x64 --output dist/linux/ai-agent-notifier"
   },
   "engines": {
     "node": ">=18"

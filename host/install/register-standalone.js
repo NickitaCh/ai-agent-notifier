@@ -39,31 +39,41 @@ function writeManifest(launcherPath, extensionId, browser) {
   return manifestPath;
 }
 
-function register(extensionId, browser) {
+// Делает саму работу, без CLI-обвязки (без process.exit/console) — чтобы
+// installer.js (двойной клик -> install()) мог вызвать регистрацию и сам
+// решить, как показать ошибку, вместо того чтобы процесс молча умер.
+function registerQuiet(extensionId, browser) {
   if (process.platform !== 'win32') {
-    console.error('Команда register в этой сборке поддерживает только Windows — см. README для macOS/Linux.');
-    process.exit(1);
+    throw new Error('register поддерживается только на Windows — см. README для macOS/Linux.');
   }
+  if (!extensionId) {
+    throw new Error('Не передан EXTENSION_ID.');
+  }
+  const exeDir = path.dirname(process.execPath);
+  const launcherPath = writeLauncher(exeDir);
+  const manifestPath = writeManifest(launcherPath, extensionId, browser);
+  platform.registerNativeHost(NATIVE_HOST_NAME, manifestPath, browser);
+  return { manifestPath, launcherPath };
+}
+
+function register(extensionId, browser) {
   if (!extensionId) {
     console.error('Использование: ai-agent-notifier.exe register <EXTENSION_ID> [chrome|chromium|edge|brave]');
     console.error('ID расширения — на странице chrome://extensions после загрузки распакованного расширения.');
     process.exit(1);
   }
 
-  const exeDir = path.dirname(process.execPath);
-  let manifestPath;
+  let result;
   try {
-    const launcherPath = writeLauncher(exeDir);
-    manifestPath = writeManifest(launcherPath, extensionId, browser);
-    platform.registerNativeHost(NATIVE_HOST_NAME, manifestPath, browser);
+    result = registerQuiet(extensionId, browser);
   } catch (err) {
     console.error(err.message);
     process.exit(1);
   }
 
   console.log(`Готово (${browser}).`);
-  console.log(`  Манифест: ${manifestPath}`);
-  console.log(`  Лаунчер:  ${launcherPathFor(exeDir)}`);
+  console.log(`  Манифест: ${result.manifestPath}`);
+  console.log(`  Лаунчер:  ${result.launcherPath}`);
 }
 
 function unregister(browser) {
@@ -75,4 +85,4 @@ function unregister(browser) {
   console.log(`Регистрация снята (${browser}).`);
 }
 
-module.exports = { register, unregister };
+module.exports = { register, registerQuiet, unregister };
