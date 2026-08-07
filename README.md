@@ -565,10 +565,8 @@ TCP-порт демона (`127.0.0.1:8765`) защищён общим токе�
 живёт на [странице для листинга Chrome Web Store](https://nickitach.github.io/ai-agent-notifier/privacy.html) —
 именно её ссылку указывать в форме публикации).
 
-Страница отдаётся через GitHub Pages из `docs/privacy.html`. Pages нельзя
-включить, пока репозиторий приватный (ограничение бесплатного плана) —
-после того как репозиторий станет публичным, включить один раз:
-Settings → Pages → Source: Deploy from a branch → `master` / `/docs`.
+Страница отдаётся через GitHub Pages из `docs/privacy.html` (включено:
+Settings → Pages → Source: Deploy from a branch → `master` / `/docs`).
 Дальше обновляется само при каждом пуше в `docs/`.
 
 ## Лицензия
