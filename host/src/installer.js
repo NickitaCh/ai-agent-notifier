@@ -75,29 +75,113 @@ function waitForEnter(promptText) {
   });
 }
 
-function hookSnippets(exePath) {
-  const p = exePath.replace(/\\/g, '\\\\');
+// Единственный источник правды для хук-фрагментов каждого агента — и для
+// печати сниппета, и для авто-мёрджа в install(). Раньше это были два
+// независимых места (печать строила JSON руками), и они успели разойтись
+// (печатный вариант потерял matcher/timeout, которые реально нужны).
+function agentHookFragments(exePath) {
+  const cmd = (args) => `"${exePath}" ${args}`;
   return [
-    [
-      'Claude Code — ~/.claude/settings.json (секция "hooks")',
-      `{
-  "hooks": {
-    "PermissionRequest": [{ "hooks": [{ "type": "command", "command": "\\"${p}\\" notify permission" }] }],
-    "Notification": [{ "matcher": "idle_prompt", "hooks": [{ "type": "command", "command": "\\"${p}\\" notify done" }] }]
-  }
-}`,
-    ],
-    [
-      'Cursor — .cursor/hooks.json',
-      `{
-  "hooks": {
-    "beforeShellExecution": [{ "command": "\\"${p}\\" notify-cursor" }],
-    "beforeMCPExecution": [{ "command": "\\"${p}\\" notify-cursor" }],
-    "stop": [{ "command": "\\"${p}\\" notify-cursor" }]
-  }
-}`,
-    ],
+    {
+      agent: 'Claude Code',
+      configPath: path.join(os.homedir(), '.claude', 'settings.json'),
+      configLabel: '~/.claude/settings.json',
+      hooksPatch: {
+        PermissionRequest: [
+          { matcher: '*', hooks: [{ type: 'command', command: cmd('notify permission'), timeout: 600 }] },
+        ],
+        Notification: [{ matcher: 'idle_prompt', hooks: [{ type: 'command', command: cmd('notify done') }] }],
+      },
+    },
+    {
+      agent: 'Cursor',
+      configPath: path.join(os.homedir(), '.cursor', 'hooks.json'),
+      configLabel: '~/.cursor/hooks.json',
+      hooksPatch: {
+        beforeShellExecution: [{ command: cmd('notify-cursor') }],
+        beforeMCPExecution: [{ command: cmd('notify-cursor') }],
+        stop: [{ command: cmd('notify-cursor') }],
+      },
+    },
   ];
+}
+
+// Событие считаем уже настроенным, если хоть один command в его текущем
+// массиве групп указывает на этот же exe — иначе повторный запуск
+// установщика (переустановка/апдейт) дублировал бы хук при каждом запуске.
+function eventAlreadyPatched(existingGroups, exePath) {
+  return (existingGroups || []).some((group) => {
+    const commands = Array.isArray(group.hooks) ? group.hooks.map((h) => h.command) : [group.command];
+    return commands.some((c) => typeof c === 'string' && c.includes(exePath));
+  });
+}
+
+// Чистая функция: существующий конфиг агента (или undefined) + наш
+// hooksPatch -> новый конфиг + список событий, куда реально что-то
+// добавили. Трогает только "hooks.<событие>", остальные настройки агента
+// (permissions, model и т.д.) переносятся как есть.
+function mergeHooksConfig(existingConfig, hooksPatch, exePath) {
+  const config = { ...(existingConfig && typeof existingConfig === 'object' ? existingConfig : {}) };
+  const hooks = { ...(config.hooks || {}) };
+  const added = [];
+  for (const [eventName, groups] of Object.entries(hooksPatch)) {
+    const current = Array.isArray(hooks[eventName]) ? hooks[eventName] : [];
+    if (eventAlreadyPatched(current, exePath)) continue;
+    hooks[eventName] = [...current, ...groups];
+    added.push(eventName);
+  }
+  config.hooks = hooks;
+  return { config, added };
+}
+
+function readJsonIfExists(filePath) {
+  if (!fs.existsSync(filePath)) return { value: undefined, raw: undefined };
+  const raw = fs.readFileSync(filePath, 'utf8');
+  return { value: raw.trim() ? JSON.parse(raw) : {}, raw };
+}
+
+// Пытается вписать хуки в конфиг одного агента. Никогда не бросает — чужой
+// файл с неожиданным содержимым не должен ронять весь install().
+function tryAutoPatch(fragment, exePath) {
+  const { configPath, configLabel } = fragment;
+  let existing;
+  try {
+    existing = readJsonIfExists(configPath);
+  } catch (err) {
+    return `✗ ${configLabel}: не смог прочитать (${err.message}) — добавь вручную по сниппету ниже.`;
+  }
+
+  const { config, added } = mergeHooksConfig(existing.value, fragment.hooksPatch, exePath);
+  if (!added.length) {
+    return `= ${configLabel}: уже настроено, не трогал.`;
+  }
+
+  try {
+    if (existing.raw !== undefined) {
+      fs.writeFileSync(`${configPath}.bak`, existing.raw, 'utf8');
+    } else {
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+    }
+    fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  } catch (err) {
+    return `✗ ${configLabel}: не смог записать (${err.message}) — добавь вручную по сниппету ниже.`;
+  }
+
+  return existing.raw !== undefined
+    ? `✓ ${configLabel}: хуки добавлены (бэкап исходника: ${path.basename(configPath)}.bak).`
+    : `✓ ${configLabel}: файл создан с хуками.`;
+}
+
+function askYesNo(promptText, defaultYes) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(promptText, (answer) => {
+      rl.close();
+      const trimmed = answer.trim().toLowerCase();
+      if (!trimmed) return resolve(defaultYes);
+      resolve(['y', 'yes', 'д', 'да'].includes(trimmed));
+    });
+  });
 }
 
 async function install() {
@@ -128,14 +212,23 @@ async function install() {
   openInBackground('explorer.exe', [targetDir]);
 
   console.log('После этого расширение готово к работе — демон запустится сам при первом событии.\n');
-  console.log('Подключи хуки своего агента (вставь в его конфиг, путь уже подставлен):\n');
-  for (const [title, snippet] of hookSnippets(exePath)) {
-    console.log(`--- ${title} ---`);
-    console.log(snippet);
+
+  const fragments = agentHookFragments(exePath);
+  console.log('Осталось подключить хуки агента. Могу вписать их автоматически — правится только');
+  console.log('секция "hooks" в конфиге, остальное не трогается, исходник сохраняется в .bak:\n');
+  for (const fragment of fragments) {
+    const yes = await askYesNo(`Добавить хуки ${fragment.agent} в ${fragment.configLabel}? [Y/n]: `, true);
+    console.log(yes ? `  ${tryAutoPatch(fragment, exePath)}` : '  Пропущено — вставь вручную сниппет ниже.');
+  }
+
+  console.log('\nСниппеты для справки/ручной вставки (Copilot и Codex — только вручную, см. README):\n');
+  for (const fragment of fragments) {
+    console.log(`--- ${fragment.agent} — ${fragment.configLabel} (секция "hooks") ---`);
+    console.log(JSON.stringify({ hooks: fragment.hooksPatch }, null, 2));
     console.log('');
   }
 
   await waitForEnter('Нажми Enter, чтобы закрыть это окно...');
 }
 
-module.exports = { install, computeExtensionId, installDir };
+module.exports = { install, computeExtensionId, installDir, mergeHooksConfig, agentHookFragments };
