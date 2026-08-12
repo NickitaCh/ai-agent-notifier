@@ -1,0 +1,19 @@
+[Unit]
+Description=AI Agent Notifier — relay-сервер (shared Telegram-бот)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/aan-relay
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+RestartSec=3
+Environment=PORT=8443
+Environment=DATA_DIR=/opt/aan-relay/data
+# BOT_TOKEN и WEBHOOK_SECRET — в /etc/aan-relay.env (не в этом файле и не в
+# репозитории), см. EnvironmentFile ниже.
+EnvironmentFile=/etc/aan-relay.env
+User=root
+
+[Install]
+WantedBy=multi-user.target

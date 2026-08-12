@@ -1,0 +1,14 @@
+{
+  "name": "aan-relay",
+  "version": "0.1.0",
+  "description": "AI Agent Notifier — relay-сервер общего Telegram-бота (Fase 2, shared-бот вместо своего токена на юзера)",
+  "private": true,
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
