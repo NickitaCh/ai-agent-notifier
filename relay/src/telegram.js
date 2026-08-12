@@ -6,23 +6,26 @@
 // шарить между ними код не имеет смысла (тот же принцип, что уже описан в
 // CLAUDE.md для popup.js/notification-channel.js).
 
+const i18n = require('./i18n');
+
 const FETCH_TIMEOUT_MS = 10000;
 
-function buildMessage(event) {
+function buildMessage(event, locale) {
+  const tr = (key) => i18n.t(locale, key);
   const isPermission = event.type === 'permission_request';
   const isActionable = isPermission && event.needsDecision !== false;
   const label = event.sessionLabel || event.cwd || '';
 
   let title;
-  if (isActionable) title = 'Агент просит разрешение';
-  else if (isPermission) title = 'Агент задал вопрос';
-  else title = 'Агент закончил';
+  if (isActionable) title = tr('event.titlePermission');
+  else if (isPermission) title = tr('event.titleQuestion');
+  else title = tr('event.titleDone');
   if (label) title += ` — ${label}`;
 
   let body;
-  if (isPermission) body = event.summary || event.tool || 'требуется ваше внимание';
-  else body = 'Задача завершена, ждёт вас';
-  if (isPermission && !isActionable) body += ' — ответьте в терминале';
+  if (isPermission) body = event.summary || event.tool || tr('event.needsAttention');
+  else body = tr('event.bodyDone');
+  if (isPermission && !isActionable) body += tr('event.answerInTerminal');
 
   return { title, body, isActionable };
 }
@@ -39,15 +42,15 @@ async function callApi(botToken, method, payload) {
   return data.result;
 }
 
-async function sendEventMessage(botToken, chatId, event) {
-  const { title, body, isActionable } = buildMessage(event);
+async function sendEventMessage(botToken, chatId, event, locale) {
+  const { title, body, isActionable } = buildMessage(event, locale);
   const payload = { chat_id: chatId, text: `${title}\n${body}` };
   if (isActionable) {
     payload.reply_markup = {
       inline_keyboard: [
         [
-          { text: '✅ Разрешить', callback_data: `allow:${event.id}` },
-          { text: '❌ Отклонить', callback_data: `deny:${event.id}` },
+          { text: i18n.t(locale, 'event.allow'), callback_data: `allow:${event.id}` },
+          { text: i18n.t(locale, 'event.deny'), callback_data: `deny:${event.id}` },
         ],
       ],
     };

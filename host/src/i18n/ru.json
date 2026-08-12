@@ -1,0 +1,11 @@
+{
+  "event.titlePermission": "Агент просит разрешение",
+  "event.titleQuestion": "Агент задал вопрос",
+  "event.titleDone": "Агент закончил",
+  "event.bodyDone": "Задача завершена, ждёт вас",
+  "event.needsAttention": "требуется ваше внимание",
+  "event.answerInTerminal": " — ответьте в терминале",
+  "event.allow": "✅ Разрешить",
+  "event.deny": "❌ Отклонить",
+  "test.summary": "Тестовое уведомление от AI Agent Notifier"
+}

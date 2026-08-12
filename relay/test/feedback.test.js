@@ -15,6 +15,7 @@ const path = require('path');
 const config = require('../src/config');
 const feedback = require('../src/feedback');
 const telegram = require('../src/telegram');
+const i18n = require('../src/i18n');
 const { handleIncomingMessage } = require('../src/server');
 
 function withTempDataDir(fn, { adminChatId = '' } = {}) {
@@ -79,14 +80,18 @@ test('/feedback с текстом: сохраняет и благодарит', 
   await withTempDataDir(async (dir) => {
     await withMockedSendText(async (sent) => {
       const id = chatId();
-      await handleIncomingMessage({ chat: { id }, from: { username: 'qa11' }, text: '/feedback кнопка не нажимается' });
+      await handleIncomingMessage({
+        chat: { id },
+        from: { username: 'qa11', language_code: 'ru' },
+        text: '/feedback кнопка не нажимается',
+      });
 
       const saved = feedback.list(dir);
       assert.equal(saved.length, 1);
       assert.equal(saved[0].text, 'кнопка не нажимается');
       assert.equal(saved[0].chatId, id);
       assert.equal(saved[0].username, 'qa11');
-      assert.match(sent[sent.length - 1].text, /Спасибо/);
+      assert.equal(sent[sent.length - 1].text, i18n.t('ru', 'bot.feedbackThanks'));
     });
   });
 });
@@ -96,7 +101,7 @@ test('/feedback без текста: подсказывает формат и н
     await withMockedSendText(async (sent) => {
       await handleIncomingMessage({ chat: { id: chatId() }, text: '/feedback' });
       assert.deepEqual(feedback.list(dir), []);
-      assert.match(sent[sent.length - 1].text, /Напишите пожелание/);
+      assert.equal(sent[sent.length - 1].text, i18n.t('en', 'bot.feedbackUsage'));
     });
   });
 });
@@ -127,7 +132,7 @@ test('/feedback: упавшая пересылка админу не мешае�
       try {
         await handleIncomingMessage({ chat: { id: chatId() }, text: '/feedback тест' });
         assert.equal(feedback.list(dir).length, 1);
-        assert.match(sent[sent.length - 1].text, /Спасибо/);
+        assert.equal(sent[sent.length - 1].text, i18n.t('en', 'bot.feedbackThanks'));
       } finally {
         telegram.sendText = original;
       }
@@ -148,7 +153,7 @@ test('/feedback: сверх лимита отвечает отказом и не
 
       await handleIncomingMessage({ chat: { id }, text: '/feedback ещё одно' });
       assert.equal(feedback.list(dir).length, max, 'сверхлимитное обращение не должно сохраняться');
-      assert.match(sent[sent.length - 1].text, /Слишком много/);
+      assert.equal(sent[sent.length - 1].text, i18n.t('en', 'bot.feedbackTooMany'));
     });
   });
 });
@@ -171,7 +176,7 @@ test('постороннее сообщение боту получает под
   await withTempDataDir(async () => {
     await withMockedSendText(async (sent) => {
       await handleIncomingMessage({ chat: { id: chatId() }, text: 'привет, а как это работает?' });
-      assert.match(sent[sent.length - 1].text, /feedback/);
+      assert.equal(sent[sent.length - 1].text, i18n.t('en', 'bot.help'));
     });
   });
 });

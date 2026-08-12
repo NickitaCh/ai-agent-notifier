@@ -1,0 +1,11 @@
+{
+  "event.titlePermission": "El agente pide permiso",
+  "event.titleQuestion": "El agente ha hecho una pregunta",
+  "event.titleDone": "El agente ha terminado",
+  "event.bodyDone": "Tarea completada, te está esperando",
+  "event.needsAttention": "requiere tu atención",
+  "event.answerInTerminal": " — responde en la terminal",
+  "event.allow": "✅ Permitir",
+  "event.deny": "❌ Denegar",
+  "test.summary": "Notificación de prueba de AI Agent Notifier"
+}

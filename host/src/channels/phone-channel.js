@@ -20,24 +20,29 @@
 
 const extensionChannel = require('./extension-channel');
 const { clientInfo } = require('../client-info');
+const i18n = require('../i18n');
 
 const RELAY_BASE_URL = 'https://ai-agent-notify.ru';
 
-function buildMessage(event) {
+// locale приходит из settings.locale (его ставит расширение — см.
+// extension/background.js). Если языка там ещё нет, i18n.t сам упадёт на
+// локаль ОС, а потом на английский.
+function buildMessage(event, locale) {
+  const t = (key) => i18n.t(locale, key);
   const isPermission = event.type === 'permission_request';
   const isActionable = isPermission && event.needsDecision !== false;
   const label = event.sessionLabel || event.cwd || '';
 
   let title;
-  if (isActionable) title = 'Агент просит разрешение';
-  else if (isPermission) title = 'Агент задал вопрос';
-  else title = 'Агент закончил';
+  if (isActionable) title = t('event.titlePermission');
+  else if (isPermission) title = t('event.titleQuestion');
+  else title = t('event.titleDone');
   if (label) title += ` — ${label}`;
 
   let body;
-  if (isPermission) body = event.summary || event.tool || 'требуется ваше внимание';
-  else body = 'Задача завершена, ждёт вас';
-  if (isPermission && !isActionable) body += ' — ответьте в терминале';
+  if (isPermission) body = event.summary || event.tool || t('event.needsAttention');
+  else body = t('event.bodyDone');
+  if (isPermission && !isActionable) body += t('event.answerInTerminal');
 
   return { title, body, isActionable };
 }
@@ -60,9 +65,9 @@ async function assertOk(res, label) {
 // self-hosted аналог) — публикуем через JSON API на корень сервера, а не
 // заголовками (Title-заголовок с кириллицей требует RFC 2047-кодирования,
 // JSON-тело этой проблемы не имеет).
-async function sendNtfy(event, phone) {
+async function sendNtfy(event, phone, locale) {
   if (!phone.ntfyTopicUrl) return;
-  const { title, body } = buildMessage(event);
+  const { title, body } = buildMessage(event, locale);
   const url = new URL(phone.ntfyTopicUrl);
   // URL.pathname процент-кодирует не-ASCII (кириллические топики) — топик
   // нужен в исходном виде для ntfy JSON API, не в percent-encoded форме.
@@ -79,9 +84,9 @@ async function sendNtfy(event, phone) {
 // Общий webhook — покрывает Discord (поле "content") и Slack (поле "text")
 // одним запросом: оба сервиса тихо игнорируют незнакомые поля, так что
 // отправка обоих ключей не ломает ни один из них.
-async function sendWebhook(event, phone) {
+async function sendWebhook(event, phone, locale) {
   if (!phone.webhookUrl) return;
-  const { title, body } = buildMessage(event);
+  const { title, body } = buildMessage(event, locale);
   const text = `${title}\n${body}`;
   const res = await fetch(phone.webhookUrl, {
     method: 'POST',
@@ -92,9 +97,9 @@ async function sendWebhook(event, phone) {
   await assertOk(res, 'webhook');
 }
 
-async function sendPushover(event, phone) {
+async function sendPushover(event, phone, locale) {
   if (!phone.pushoverToken || !phone.pushoverUserKey) return;
-  const { title, body, isActionable } = buildMessage(event);
+  const { title, body, isActionable } = buildMessage(event, locale);
   const params = new URLSearchParams({
     token: phone.pushoverToken,
     user: phone.pushoverUserKey,
@@ -115,16 +120,16 @@ async function sendPushover(event, phone) {
 
 // Свой Telegram-бот: отправка с inline-кнопками для permission_request.
 // Нажатие кнопки обрабатывается отдельно в telegram-poller.js.
-async function sendTelegram(event, phone) {
+async function sendTelegram(event, phone, locale) {
   if (!phone.telegramBotToken || !phone.telegramChatId) return;
-  const { title, body, isActionable } = buildMessage(event);
+  const { title, body, isActionable } = buildMessage(event, locale);
   const payload = { chat_id: phone.telegramChatId, text: `${title}\n${body}` };
   if (isActionable) {
     payload.reply_markup = {
       inline_keyboard: [
         [
-          { text: '✅ Разрешить', callback_data: `allow:${event.id}` },
-          { text: '❌ Отклонить', callback_data: `deny:${event.id}` },
+          { text: i18n.t(locale, 'event.allow'), callback_data: `allow:${event.id}` },
+          { text: i18n.t(locale, 'event.deny'), callback_data: `deny:${event.id}` },
         ],
       ],
     };
@@ -159,17 +164,21 @@ async function pollRelayDecision(token, eventId) {
 // после обновления хоста или переустановки ОС, а так они всегда свежие
 // ценой ~60 байт на событие. Отключается тумблером phone.relayMetrics —
 // сами события при этом продолжают ходить, отключается только статистика.
-function buildRelayBody(event, phone) {
-  if (phone.relayMetrics === false) return event;
-  return { ...event, client: clientInfo() };
+// locale уезжает всегда, независимо от тумблера статистики: это не метрика,
+// а условие того, чтобы бот отвечал на том же языке, что и остальной
+// интерфейс. Relay запоминает его в записи юзера (см. relay/src/store.js).
+function buildRelayBody(event, phone, locale) {
+  const withLocale = { ...event, locale: i18n.resolve(locale) };
+  if (phone.relayMetrics === false) return withLocale;
+  return { ...withLocale, client: clientInfo() };
 }
 
-async function sendRelay(event, phone) {
+async function sendRelay(event, phone, locale) {
   if (!phone.relayToken) return;
   const res = await fetch(`${RELAY_BASE_URL}/events`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${phone.relayToken}` },
-    body: JSON.stringify(buildRelayBody(event, phone)),
+    body: JSON.stringify(buildRelayBody(event, phone, locale)),
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   await assertOk(res, 'relay');
@@ -201,7 +210,10 @@ async function send(event, settings) {
     console.error(`[phone-channel] неизвестный provider "${provider}"`);
     return;
   }
-  await sender(event, phone);
+  // locale лежит на верхнем уровне настроек, а не в phone: он общий для
+  // всего продукта (тост в браузере, попап, телефон, бот), а не свойство
+  // конкретного канала.
+  await sender(event, phone, settings && settings.locale);
 }
 
 // Пейринг с shared-ботом (см. popup.js "Привязать через бота") — тоже идёт

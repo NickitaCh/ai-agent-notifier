@@ -64,10 +64,14 @@ function autoSessionLabel(sessionId, info) {
   const agent = AGENT_LABELS[info.agent] || '';
   const project = projectLabel(info.cwd);
   const shortId = shortSessionId(sessionId);
-  const place = project !== '(без папки)' ? project : (shortId ? `сессия ${shortId}` : '');
+  const noFolder = t('project.noFolder');
+  const place = project !== noFolder ? project : (shortId ? t('session.shortLabel', { id: shortId }) : '');
   const withId = place && shortId ? `${place} · ${shortId}` : place;
-  return [agent, withId].filter(Boolean).join(' · ') || 'неизвестная сессия';
+  return [agent, withId].filter(Boolean).join(' · ') || t('session.unknown');
 }
+
+// Короткий псевдоним — t() встречается в этом файле десятки раз.
+const t = (key, params) => self.I18n.t(key, params);
 
 function sendMessage(msg) {
   return new Promise((resolve) => chrome.runtime.sendMessage(msg, resolve));
@@ -82,7 +86,7 @@ function formatTime(ts) {
 // поэтому небольшой дубль вместо общего модуля.
 const GENERIC_FOLDER_NAMES = new Set(['src', 'host', 'app', 'bin', 'lib', 'server', 'client', 'backend', 'frontend', 'web', 'core', 'test', 'tests', 'dist', 'build']);
 function projectLabel(cwd) {
-  if (!cwd) return '(без папки)';
+  if (!cwd) return t('project.noFolder');
   const parts = cwd.split(/[\\/]/).filter(Boolean);
   if (!parts.length) return cwd;
   const last = parts[parts.length - 1];
@@ -97,7 +101,7 @@ function populateProjectSelect() {
   snoozeProjectSelect.innerHTML = '';
   if (!knownProjects.length) {
     const opt = document.createElement('option');
-    opt.textContent = 'нет недавних проектов';
+    opt.textContent = t('snooze.noProjects');
     opt.disabled = true;
     snoozeProjectSelect.appendChild(opt);
     return;
@@ -119,11 +123,11 @@ function renderActiveSnoozes(snoozeByProject) {
     const li = document.createElement('li');
     const label = document.createElement('span');
     label.className = 'proj';
-    label.textContent = `${projectLabel(cwd)} — до ${formatTime(until)}`;
+    label.textContent = t('snooze.activeUntil', { project: projectLabel(cwd), time: formatTime(until) });
     label.title = cwd;
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.textContent = 'отключить';
+    cancelBtn.textContent = t('snooze.cancel');
     cancelBtn.addEventListener('click', () => patchSettings({ snoozeByProject: { [cwd]: null } }));
     li.append(label, cancelBtn);
     snoozeActiveList.appendChild(li);
@@ -135,7 +139,10 @@ const sessionsList = document.getElementById('sessionsList');
 function renderSessionsList() {
   sessionsList.innerHTML = '';
   if (!knownSessions.size) {
-    sessionsList.innerHTML = '<li class="empty">нет недавних сессий</li>';
+    const empty = document.createElement('li');
+    empty.className = 'empty';
+    empty.textContent = t('sessions.empty');
+    sessionsList.appendChild(empty);
     return;
   }
   for (const [sessionId, info] of knownSessions) {
@@ -148,7 +155,7 @@ function renderSessionsList() {
 
     const input = document.createElement('input');
     input.type = 'text';
-    input.placeholder = 'своё имя для этой сессии…';
+    input.placeholder = t('sessions.namePlaceholder');
     input.value = currentSessionNames[sessionId] || '';
     input.addEventListener('change', () => {
       patchSettings({ sessionNames: { [sessionId]: input.value.trim() || null } });
@@ -185,17 +192,17 @@ function renderPhoneSettings(phone = {}) {
   document.getElementById('phoneRelayMetrics').checked = phone.relayMetrics !== false;
 
   if (phone.relayToken) {
-    relayPairStatus.textContent = 'Привязано ✓';
-    relayPairBtn.textContent = 'Привязать заново';
+    relayPairStatus.textContent = t('phone.paired');
+    relayPairBtn.textContent = t('phone.pairAgain');
   } else {
     relayPairStatus.textContent = '';
-    relayPairBtn.textContent = 'Привязать через бота';
+    relayPairBtn.textContent = t('phone.pairButton');
   }
 }
 
 function renderSettings(settings) {
   if (!settings) {
-    showSaveHint('нет связи с host');
+    showSaveHint(t('status.disconnected'));
     return;
   }
 
@@ -224,9 +231,9 @@ async function patchSettings(patch) {
   const res = await sendMessage({ type: 'update_settings', patch });
   if (res?.settings) {
     renderSettings(res.settings);
-    showSaveHint('Сохранено');
+    showSaveHint(t('settings.saved'));
   } else {
-    showSaveHint('Не удалось сохранить — нет связи с host');
+    showSaveHint(t('settings.saveFailed'));
   }
 }
 
@@ -273,11 +280,13 @@ document.getElementById('phoneRelayMetrics').addEventListener('change', (e) => {
 
 phoneTestBtn.addEventListener('click', async () => {
   phoneTestBtn.disabled = true;
-  phoneTestHint.textContent = 'отправляю…';
+  phoneTestHint.textContent = t('phone.testSending');
   phoneTestHint.classList.remove('show');
   const res = await sendMessage({ type: 'test_phone' });
   phoneTestBtn.disabled = false;
-  phoneTestHint.textContent = res?.ok ? 'Отправлено ✓' : `Не удалось${res?.error ? `: ${res.error}` : ''}`;
+  phoneTestHint.textContent = res?.ok
+    ? t('phone.testSent')
+    : `${t('phone.testFailed')}${res?.error ? `: ${res.error}` : ''}`;
   if (res?.ok) phoneTestHint.classList.add('show');
   setTimeout(() => phoneTestHint.classList.remove('show'), 4000);
 });
@@ -300,8 +309,8 @@ async function pollPairingWhileOpen() {
   const res = await sendMessage({ type: 'get_pair_status' });
   if (res?.pending) {
     relayPairBtn.disabled = true;
-    relayPairBtn.textContent = 'Привязывается…';
-    relayPairStatus.textContent = 'ждём подтверждения в Telegram… (попап можно закрыть, придёт уведомление)';
+    relayPairBtn.textContent = t('phone.pairing');
+    relayPairStatus.textContent = t('phone.pairWaiting');
     pairingPollTimer = setTimeout(pollPairingWhileOpen, 1500);
   } else {
     relayPairBtn.disabled = false;
@@ -311,11 +320,11 @@ async function pollPairingWhileOpen() {
 
 relayPairBtn.addEventListener('click', async () => {
   relayPairBtn.disabled = true;
-  relayPairStatus.textContent = 'открываю Telegram…';
+  relayPairStatus.textContent = t('phone.pairOpening');
   const start = await sendMessage({ type: 'relay_pair_start' });
   if (!start?.ok) {
     relayPairBtn.disabled = false;
-    relayPairStatus.textContent = `Не удалось начать привязку${start?.error ? `: ${start.error}` : ''}`;
+    relayPairStatus.textContent = `${t('phone.pairStartFailed')}${start?.error ? `: ${start.error}` : ''}`;
     return;
   }
   chrome.tabs.create({ url: start.deepLink });
@@ -334,20 +343,21 @@ for (const btn of document.querySelectorAll('button[data-snooze]')) {
 async function refreshStatus() {
   const res = await sendMessage({ type: 'get_status' });
   if (!res) {
-    statusText.textContent = 'нет ответа от фонового процесса';
+    statusText.textContent = t('status.noBackground');
     document.body.classList.add('disconnected');
     return null;
   }
 
   dot.classList.toggle('on', res.connected);
-  statusText.textContent = res.connected ? 'подключено к host' : 'нет связи с host';
+  statusText.textContent = res.connected ? t('status.connected') : t('status.disconnected');
   document.body.classList.toggle('disconnected', !res.connected);
 
   if (res.hostInfo?.mismatch) {
-    versionWarning.textContent =
-      `Версии расширения (протокол ${EXTENSION_PROTOCOL_VERSION}) и host-процесса ` +
-      `(протокол ${res.hostInfo.protocolVersion}, версия ${res.hostInfo.hostVersion}) разошлись — ` +
-      `обновите обе стороны до последней версии (см. README).`;
+    versionWarning.textContent = t('version.mismatch', {
+      extProtocol: EXTENSION_PROTOCOL_VERSION,
+      hostProtocol: res.hostInfo.protocolVersion,
+      hostVersion: res.hostInfo.hostVersion,
+    });
     versionWarning.classList.add('show');
   } else {
     versionWarning.classList.remove('show');
@@ -355,7 +365,9 @@ async function refreshStatus() {
 
   log.innerHTML = '';
   if (!res.lastEvents.length) {
-    log.innerHTML = '<li>событий пока не было</li>';
+    const empty = document.createElement('li');
+    empty.textContent = t('log.empty');
+    log.appendChild(empty);
   } else {
     for (const item of res.lastEvents) {
       const li = document.createElement('li');
@@ -403,13 +415,18 @@ const checkAgainBtn = document.getElementById('checkAgain');
 const checkAgainHint = document.getElementById('checkAgainHint');
 checkAgainBtn.addEventListener('click', async () => {
   checkAgainBtn.disabled = true;
-  checkAgainHint.textContent = 'проверяю…';
+  checkAgainHint.textContent = t('onboarding.checking');
   const res = await refreshStatus();
   checkAgainBtn.disabled = false;
-  checkAgainHint.textContent = res?.connected ? '' : 'по-прежнему нет связи';
+  checkAgainHint.textContent = res?.connected ? '' : t('onboarding.stillNoLink');
   if (res?.connected) loadSettings();
 });
 
+// Сам текст диагностики и тело issue НЕ локализуются — намеренно. Это
+// технический артефакт, который читает мейнтейнер в трекере, а не интерфейс
+// для юзера: единый английский формат означает, что issue от испанского и
+// русского юзера выглядят одинаково и ищутся одним запросом. Локализованы
+// только надписи на кнопках и подсказки вокруг них.
 async function buildDiagnostics() {
   const [status, diag] = await Promise.all([
     sendMessage({ type: 'get_status' }),
@@ -417,17 +434,18 @@ async function buildDiagnostics() {
   ]);
 
   const report = [
-    `AI Agent Notifier — диагностика`,
-    `Время: ${new Date().toISOString()}`,
-    `Версия расширения: ${chrome.runtime.getManifest().version}`,
-    `Платформа: ${navigator.userAgent}`,
-    `Подключено к host: ${status?.connected ? 'да' : 'нет'}`,
+    `AI Agent Notifier — diagnostics`,
+    `Time: ${new Date().toISOString()}`,
+    `Extension version: ${chrome.runtime.getManifest().version}`,
+    `UI language: ${self.I18n.current()}`,
+    `Platform: ${navigator.userAgent}`,
+    `Connected to host: ${status?.connected ? 'yes' : 'no'}`,
     ``,
-    `--- Последние события (popup) ---`,
+    `--- Recent events (popup) ---`,
     JSON.stringify(status?.lastEvents ?? [], null, 2),
     ``,
-    `--- Хвост daemon.log ---`,
-    diag?.logTail || '(недоступно)',
+    `--- daemon.log tail ---`,
+    diag?.logTail || '(unavailable)',
   ].join('\n');
 
   return { report, connected: !!status?.connected };
@@ -440,9 +458,9 @@ document.getElementById('reportIssue').addEventListener('click', async () => {
 
   try {
     await navigator.clipboard.writeText(report);
-    btn.textContent = 'Скопировано ✓';
+    btn.textContent = t('report.copied');
   } catch {
-    btn.textContent = 'Не удалось скопировать';
+    btn.textContent = t('report.copyFailed');
   }
   setTimeout(() => (btn.textContent = originalText), 2000);
 });
@@ -455,23 +473,24 @@ const ISSUE_URL = 'https://github.com/NickitaCh/ai-agent-notifier/issues/new';
 // вставить. Один клик вместо "сначала нажмите одну кнопку, потом другую".
 function buildIssueBody({ connected }) {
   return [
-    '<!-- Опишите, что произошло и что вы ожидали увидеть -->',
+    '<!-- Describe what happened and what you expected -->',
     '',
     '',
-    '### Окружение',
-    `- Версия расширения: ${chrome.runtime.getManifest().version}`,
-    `- Платформа: ${navigator.userAgent}`,
-    `- Связь с компаньоном: ${connected ? 'есть' : 'нет'}`,
+    '### Environment',
+    `- Extension version: ${chrome.runtime.getManifest().version}`,
+    `- UI language: ${self.I18n.current()}`,
+    `- Platform: ${navigator.userAgent}`,
+    `- Companion connected: ${connected ? 'yes' : 'no'}`,
     '',
-    '### Диагностика',
-    '<!-- Полная диагностика уже скопирована в буфер обмена — вставьте её сюда (Ctrl+V) -->',
+    '### Diagnostics',
+    '<!-- Full diagnostics are already in your clipboard — paste them here (Ctrl+V) -->',
     '',
   ].join('\n');
 }
 
 document.getElementById('sendFeedback').addEventListener('click', async () => {
   const hint = document.getElementById('feedbackHint');
-  hint.textContent = 'готовлю…';
+  hint.textContent = t('feedback.preparing');
   const { report, connected } = await buildDiagnostics();
 
   // Порядок важен: clipboard.writeText обязан завершиться ДО tabs.create.
@@ -486,10 +505,59 @@ document.getElementById('sendFeedback').addEventListener('click', async () => {
   }
 
   const url = `${ISSUE_URL}?template=bug_report.md&body=${encodeURIComponent(buildIssueBody({ connected }))}`;
-  hint.textContent = copied
-    ? 'диагностика в буфере — вставьте её в issue'
-    : 'не удалось скопировать диагностику, опишите проблему словами';
+  hint.textContent = copied ? t('feedback.copiedHint') : t('feedback.copyFailedHint');
   chrome.tabs.create({ url });
 });
 
-refreshStatus().then(loadSettings).then(pollPairingWhileOpen);
+// --- язык -----------------------------------------------------------------
+
+const langButtons = Array.from(document.querySelectorAll('#langRow button[data-locale]'));
+
+function renderLangChips() {
+  const active = self.I18n.current();
+  for (const btn of langButtons) btn.classList.toggle('active', btn.dataset.locale === active);
+}
+
+// Перерисовываем всё, что построено из строк: статические надписи через
+// apply(), динамические — повторным рендером. Иначе половина попапа
+// осталась бы на старом языке до переоткрытия.
+async function applyLocale(locale) {
+  await self.I18n.use(locale);
+  self.I18n.apply(document);
+  renderLangChips();
+  await refreshStatus();
+  await loadSettings();
+}
+
+for (const btn of langButtons) {
+  btn.addEventListener('click', async () => {
+    const locale = btn.dataset.locale;
+    // Зеркало в storage — чтобы попап открывался сразу на нужном языке,
+    // не дожидаясь ответа демона (и работал, когда демона нет вовсе).
+    await chrome.storage.local.set({ locale });
+    await applyLocale(locale);
+    // И в настройки демона — оттуда язык берут хост (сообщения на телефон)
+    // и relay (ответы бота). Без этого попап переключился бы, а уведомления
+    // продолжали приходить на старом языке.
+    patchSettings({ locale });
+  });
+}
+
+async function init() {
+  const stored = await chrome.storage.local.get('locale');
+  // Первый запуск: языка ещё нет — берём язык интерфейса браузера.
+  // Дальше он живёт в storage и меняется только переключателем выше.
+  const locale = stored.locale || self.I18n.detect();
+  if (!stored.locale) await chrome.storage.local.set({ locale });
+
+  await self.I18n.use(locale);
+  self.I18n.apply(document);
+  renderLangChips();
+  statusText.textContent = t('status.checking');
+
+  await refreshStatus();
+  await loadSettings();
+  await pollPairingWhileOpen();
+}
+
+init();

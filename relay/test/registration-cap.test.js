@@ -16,6 +16,7 @@ const config = require('../src/config');
 const store = require('../src/store');
 const pairingCodes = require('../src/pairing-codes');
 const telegram = require('../src/telegram');
+const i18n = require('../src/i18n');
 const { handleIncomingMessage } = require('../src/server');
 
 function withTempDataDirAndCap(maxUsers, fn) {
@@ -45,10 +46,10 @@ test('handleIncomingMessage: новый чат создаётся, пока не
   await withTempDataDirAndCap(2, async (dir) => {
     await withMockedSendText(async (sent) => {
       const code = pairingCodes.createCode(60000);
-      await handleIncomingMessage({ chat: { id: 111 }, text: `/start ${code}` });
+      await handleIncomingMessage({ chat: { id: 111 }, from: { language_code: 'ru' }, text: `/start ${code}` });
       const user = Object.values(store.load(dir))[0];
       assert.equal(user.chatId, 111);
-      assert.match(sent[sent.length - 1].text, /Привязано/);
+      assert.equal(sent[sent.length - 1].text, i18n.t('ru', 'bot.paired'));
     });
   });
 });
@@ -61,7 +62,7 @@ test('handleIncomingMessage: сверх maxUsers новым чатам отка�
       await handleIncomingMessage({ chat: { id: 222 }, text: `/start ${code}` });
       const users = store.load(dir);
       assert.equal(Object.keys(users).length, 1); // новый юзер не добавился
-      assert.match(sent[sent.length - 1].text, /паузе/);
+      assert.equal(sent[sent.length - 1].text, i18n.t('en', 'bot.capReached'));
     });
   });
 });
@@ -74,7 +75,7 @@ test('handleIncomingMessage: повторная привязка того же c
       await handleIncomingMessage({ chat: { id: 333 }, text: `/start ${code}` });
       const users = store.load(dir);
       assert.equal(Object.keys(users).length, 2); // новый токен для того же chatId — ок
-      assert.match(sent[sent.length - 1].text, /Привязано/);
+      assert.equal(sent[sent.length - 1].text, i18n.t('en', 'bot.paired'));
     });
   });
 });
@@ -84,7 +85,7 @@ test('handleIncomingMessage: неизвестный/просроченный к�
     await withMockedSendText(async (sent) => {
       await handleIncomingMessage({ chat: { id: 444 }, text: '/start никогда-не-существовавший-код' });
       assert.deepEqual(store.load(dir), {});
-      assert.match(sent[sent.length - 1].text, /не найден или истёк/);
+      assert.equal(sent[sent.length - 1].text, i18n.t('en', 'bot.codeNotFound'));
     });
   });
 });

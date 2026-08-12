@@ -1,6 +1,6 @@
 'use strict';
 
-importScripts('channels/badge-channel.js', 'channels/notification-channel.js');
+importScripts('i18n.js', 'channels/badge-channel.js', 'channels/notification-channel.js');
 
 // Имя должно совпадать с host/src/constants.js (NATIVE_HOST_NAME) и с
 // "name" в host-манифесте, который регистрируется в реестре/файловой системе.
@@ -70,7 +70,9 @@ function onNativeMessage(payload) {
   if (payload.kind === 'badge') {
     BadgeChannel.show(payload.event);
   } else if (payload.kind === 'notification') {
-    NotificationChannel.show(payload.event, payload.options);
+    // Ждём каталог: SW мог проснуться именно ради этого события, и
+    // NotificationChannel.show() читает строки синхронно (см. i18n.ready).
+    self.I18n.ready().then(() => NotificationChannel.show(payload.event, payload.options));
   }
 }
 
@@ -156,7 +158,7 @@ async function checkPendingPair() {
       type: 'basic',
       iconUrl: 'icons/icon128.png',
       title: 'AI Agent Notifier',
-      message: 'Телефон привязан через Telegram-бота ✓',
+      message: self.I18n.t('phone.pairedToast'),
     });
     return;
   }
@@ -182,7 +184,53 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name !== 'keepalive') return;
   if (!port) connect();
   checkPendingPair();
+  // Демон мог только что подняться — тогда это первая возможность
+  // договориться с ним о языке.
+  syncLocaleWithDaemon();
 });
+
+// --- язык -----------------------------------------------------------------
+//
+// Источник истины — settings.locale в демоне: оттуда его читают хост
+// (сообщения на телефон) и relay (ответы бота), а значит все четыре
+// поверхности говорят на одном языке. Но service worker должен уметь
+// показать тост и без демона, поэтому язык дублируется в
+// chrome.storage.local и читается оттуда мгновенно.
+//
+// Кто кого перетирает: если у демона язык уже задан — он выигрывает (его
+// мог поставить попап из другого профиля Chrome). Если нет — туда уезжает
+// наше значение. Так первый запуск один раз фиксирует язык браузера, а
+// дальше им управляет переключатель в попапе.
+async function initLocale() {
+  const stored = await chrome.storage.local.get('locale');
+  const locale = stored.locale || self.I18n.detect();
+  if (!stored.locale) await chrome.storage.local.set({ locale });
+  await self.I18n.use(locale);
+  return locale;
+}
+
+async function syncLocaleWithDaemon() {
+  const local = await initLocale();
+  if (!port) return;
+  const reply = await requestFromDaemon({ type: 'get_settings' });
+  const daemonLocale = reply?.settings?.locale;
+  if (daemonLocale && self.I18n.normalize(daemonLocale) && daemonLocale !== local) {
+    await chrome.storage.local.set({ locale: daemonLocale });
+    await self.I18n.use(daemonLocale);
+    return;
+  }
+  if (!daemonLocale) {
+    await requestFromDaemon({ type: 'update_settings', patch: { locale: local } });
+  }
+}
+
+// Попап пишет в тот же ключ при переключении языка — подхватываем, чтобы
+// тосты не остались на прежнем языке до перезапуска service worker'а.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.locale?.newValue) self.I18n.use(changes.locale.newValue);
+});
+
+initLocale();
 
 chrome.runtime.onStartup.addListener(connect);
 chrome.runtime.onInstalled.addListener((details) => {

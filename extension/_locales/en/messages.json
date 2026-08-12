@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "AI Agent Notifier",
+    "description": "Название расширения. Одинаково во всех языках — это имя продукта, а не описание."
+  },
+  "appDescription": {
+    "message": "Get notified when Claude Code (or another agent) is waiting for your decision",
+    "description": "Короткое описание для карточки в Chrome Web Store и в chrome://extensions."
+  }
+}

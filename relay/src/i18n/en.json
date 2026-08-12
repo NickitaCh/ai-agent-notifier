@@ -1,0 +1,21 @@
+{
+  "event.titlePermission": "Agent needs permission",
+  "event.titleQuestion": "Agent asked a question",
+  "event.titleDone": "Agent finished",
+  "event.bodyDone": "Task complete, waiting for you",
+  "event.needsAttention": "needs your attention",
+  "event.answerInTerminal": " — answer in the terminal",
+  "event.allow": "✅ Allow",
+  "event.deny": "❌ Deny",
+  "decision.allowed": "Allowed",
+  "decision.denied": "Denied",
+  "bot.pairIntro": "This bot is used to pair AI Agent Notifier. Open the extension popup → \"Phone\" → \"Pair via the bot\".",
+  "bot.codeNotFound": "That code was not found or has expired. Go back to the extension settings and start pairing again.",
+  "bot.capReached": "The shared bot is paused right now — too many connections for the beta. Try again later, or switch to the \"your own bot\" mode in the extension settings.",
+  "bot.paired": "✅ Paired! You can go back to the extension settings.",
+  "bot.help": "I can do two things: pair the extension (the \"Pair via the bot\" button in its settings) and take feedback — send /feedback followed by your message.",
+  "bot.feedbackUsage": "Send your suggestion or describe the problem in one command, for example:\n/feedback notifications stop arriving after a reboot",
+  "bot.feedbackTooMany": "Too many messages in a row — please try again later.",
+  "bot.feedbackSaveFailed": "Could not save your message. Please try again later.",
+  "bot.feedbackThanks": "✅ Thanks, passed it on. If anything needs clarifying, I'll write here."
+}

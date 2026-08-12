@@ -210,11 +210,19 @@ test('buildRelayBody: по умолчанию прикладывает слеп�
   assert.ok(body.client.hostVersion.length > 0);
 });
 
-test('buildRelayBody: relayMetrics:false шлёт голое событие, без client', () => {
+test('buildRelayBody: relayMetrics:false убирает client, но НЕ язык', () => {
+  // Язык — не статистика: без него бот отвечал бы не на том языке, что
+  // остальной интерфейс, даже у юзера, отключившего сбор метрик.
   const event = { id: 'ev-2', type: 'task_done' };
-  const body = phoneChannel.buildRelayBody(event, { relayToken: 't', relayMetrics: false });
+  const body = phoneChannel.buildRelayBody(event, { relayToken: 't', relayMetrics: false }, 'es');
   assert.equal(body.client, undefined);
-  assert.deepEqual(body, event);
+  assert.equal(body.locale, 'es');
+  assert.deepEqual({ id: body.id, type: body.type }, event);
+});
+
+test('buildRelayBody: неизвестный язык нормализуется до поддерживаемого', () => {
+  const body = phoneChannel.buildRelayBody({ id: 'ev-3', type: 'task_done' }, { relayToken: 't' }, 'pt-BR');
+  assert.ok(['ru', 'en', 'es'].includes(body.locale));
 });
 
 test('send: relay кладёт client в тело запроса', async () => {

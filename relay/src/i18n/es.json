@@ -1,0 +1,21 @@
+{
+  "event.titlePermission": "El agente pide permiso",
+  "event.titleQuestion": "El agente ha hecho una pregunta",
+  "event.titleDone": "El agente ha terminado",
+  "event.bodyDone": "Tarea completada, te está esperando",
+  "event.needsAttention": "requiere tu atención",
+  "event.answerInTerminal": " — responde en la terminal",
+  "event.allow": "✅ Permitir",
+  "event.deny": "❌ Denegar",
+  "decision.allowed": "Permitido",
+  "decision.denied": "Denegado",
+  "bot.pairIntro": "Este bot sirve para vincular AI Agent Notifier. Abre la ventana de la extensión → «Teléfono» → «Vincular con el bot».",
+  "bot.codeNotFound": "Ese código no existe o ha caducado. Vuelve a los ajustes de la extensión y empieza la vinculación de nuevo.",
+  "bot.capReached": "El bot compartido está en pausa ahora mismo: demasiadas conexiones para la beta. Inténtalo más tarde o usa el modo «tu propio bot» en los ajustes de la extensión.",
+  "bot.paired": "✅ ¡Vinculado! Ya puedes volver a los ajustes de la extensión.",
+  "bot.help": "Sé hacer dos cosas: vincular la extensión (el botón «Vincular con el bot» en sus ajustes) y recibir comentarios: escribe /feedback y tu mensaje.",
+  "bot.feedbackUsage": "Envía tu sugerencia o describe el problema en un solo comando, por ejemplo:\n/feedback las notificaciones dejan de llegar después de reiniciar",
+  "bot.feedbackTooMany": "Demasiados mensajes seguidos: inténtalo más tarde.",
+  "bot.feedbackSaveFailed": "No se pudo guardar tu mensaje. Inténtalo de nuevo más tarde.",
+  "bot.feedbackThanks": "✅ Gracias, ya lo he transmitido. Si hace falta aclarar algo, te escribiré por aquí."
+}

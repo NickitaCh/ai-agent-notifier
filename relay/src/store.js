@@ -32,15 +32,30 @@ function save(dataDir, users) {
   fs.writeFileSync(target, JSON.stringify(users, null, 2), 'utf8');
 }
 
-function createUser(dataDir, token, chatId) {
+// locale — язык, на котором с этим юзером говорит бот. При создании берётся
+// из language_code Telegram (единственное, что известно до первого события),
+// дальше уточняется тем, что реально стоит в настройках расширения.
+function createUser(dataDir, token, chatId, locale = null) {
   const users = load(dataDir);
-  users[token] = { chatId, tier: 'free', createdAt: Date.now() };
+  users[token] = { chatId, tier: 'free', createdAt: Date.now(), locale };
   save(dataDir, users);
   return users[token];
+}
+
+// Отдельно от metrics.recordEvent, хотя тот тоже правит запись юзера: язык
+// обязан сохраняться и когда статистика выключена тумблером, иначе бот
+// отвечал бы не на том языке именно тем, кто отказался от метрик.
+function setLocale(dataDir, token, locale) {
+  if (!locale) return;
+  const users = load(dataDir);
+  const user = users[token];
+  if (!user || user.locale === locale) return;
+  user.locale = locale;
+  save(dataDir, users);
 }
 
 function getUser(dataDir, token) {
   return load(dataDir)[token];
 }
 
-module.exports = { load, save, createUser, getUser };
+module.exports = { load, save, createUser, setLocale, getUser };

@@ -42,7 +42,7 @@ function sessionDisplayLabel(event) {
   const project = projectLabel(event.cwd);
   const shortId = event.sessionId ? event.sessionId.replace(/-/g, '').slice(0, 4) : '';
 
-  const place = project || (shortId ? `сессия ${shortId}` : '');
+  const place = project || (shortId ? self.I18n.t('session.shortLabel', { id: shortId }) : '');
   const withId = project && shortId ? `${place} · ${shortId}` : place;
 
   return [agent, withId].filter(Boolean).join(' · ');
@@ -56,16 +56,18 @@ function show(event, options = {}) {
   const isActionable = isPermission && event.needsDecision !== false;
   const label = sessionDisplayLabel(event);
 
+  const t = (key, params) => self.I18n.t(key, params);
+
   let title;
-  if (isActionable) title = 'Агент просит разрешение';
-  else if (isPermission) title = 'Агент задал вопрос';
-  else title = 'Агент закончил';
+  if (isActionable) title = t('event.titlePermission');
+  else if (isPermission) title = t('event.titleQuestion');
+  else title = t('event.titleDone');
   title += label ? ` — ${label}` : '';
 
   let message;
-  if (isPermission) message = event.summary || event.tool || 'требуется ваше внимание';
-  else message = 'Задача завершена, ждёт вас';
-  if (isPermission && !isActionable) message += ' — ответьте в терминале';
+  if (isPermission) message = event.summary || event.tool || t('event.needsAttention');
+  else message = t('event.bodyDone');
+  if (isPermission && !isActionable) message += t('event.answerInTerminal');
 
   const notifOptions = {
     type: 'basic',
@@ -76,7 +78,7 @@ function show(event, options = {}) {
     silent: options.silent ?? false,
   };
   if (isActionable) {
-    notifOptions.buttons = [{ title: 'Разрешить' }, { title: 'Отклонить' }];
+    notifOptions.buttons = [{ title: t('event.allow') }, { title: t('event.deny') }];
   }
 
   // event.id используем как notificationId, чтобы потом связать клик по

@@ -380,6 +380,53 @@ permission-mode or rule-matching pre-filter back, don't — trust
 sanctioned suppression path, and it's opt-in and explicit rather than
 inferred.
 
+### Localization: three catalogs, one language
+
+The UI ships in Russian, English and Spanish. Strings live in **three
+separate catalog sets**, one per deploy unit, and they are deliberately not
+shared:
+
+- `extension/i18n/{ru,en,es}.json` + `extension/i18n.js` — popup, welcome
+  page, Chrome toasts.
+- `host/src/i18n/{ru,en,es}.json` + `host/src/i18n.js` — the phone-channel
+  messages the host sends.
+- `relay/src/i18n/{ru,en,es}.json` + `relay/src/i18n.js` — everything the
+  shared bot says.
+
+Same reasoning as `relay/src/telegram.js` duplicating `buildMessage`: browser
+extension, local exe and VPS service update on entirely different schedules,
+and their string sets barely overlap. A shared package for a few dozen
+phrases would cost more than the duplication.
+
+**What is shared is the chosen language, not the files.** `settings.locale`
+in the daemon is the single source of truth: the host reads it for phone
+messages and sends it with each event as `event.locale`, which the relay
+stores on the user record and uses for bot replies. The extension mirrors it
+into `chrome.storage.local` so the popup can render instantly and while the
+daemon is down. On first run the extension resolves
+`chrome.i18n.getUILanguage()` once and writes it there; after that only the
+popup's language switcher changes it. The result is that all four surfaces
+always speak the same language — which is the whole point, since a toast and
+the phone notification for the same event sit side by side.
+
+`chrome.i18n` is used for exactly one thing: `_locales/*/messages.json` for
+the manifest's name and description, because a Web Store listing can't be
+localized any other way. It is not used for the UI — it is bound to the
+browser's language and cannot be overridden, which would defeat the switcher.
+
+Adding a string: add the key to **every** catalog of that unit, then use it
+(`data-i18n="key"` in markup, `t('key')` in JS). `host/test/i18n-catalogs.test.js`
+fails on a key missing from one language, an unused key, a placeholder that
+drifted between languages, and any visible Cyrillic left hardcoded in the
+extension's markup. Adding a language means a new catalog in each unit plus
+its code in `SUPPORTED` (three places) and a chip in the popup.
+
+Two things stay unlocalized on purpose: the diagnostics text and the
+pre-filled GitHub issue body (a technical artifact read by the maintainer —
+one uniform English format keeps issues searchable), and the language names
+in the switcher (each written in its own language, so you can find yours
+without being able to read the current one).
+
 ### What the relay's metrics may and may not record
 
 `relay/src/metrics.js` writes two things: a rollup inside each user's record

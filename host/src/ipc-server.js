@@ -10,6 +10,7 @@ const extensionChannel = require('./channels/extension-channel');
 const phoneChannel = require('./channels/phone-channel');
 const stopDebounce = require('./stop-debounce');
 const auth = require('./auth');
+const i18n = require('./i18n');
 
 const DIAGNOSTICS_TAIL_LINES = 60;
 
@@ -168,7 +169,7 @@ async function handleTestPhone(socket, requestId) {
   const testEvent = {
     id: `test-${Date.now()}`,
     type: 'task_done',
-    summary: 'Тестовое уведомление от AI Agent Notifier',
+    summary: i18n.t(settings.locale, 'test.summary'),
   };
   try {
     await phoneChannel.send(testEvent, settings);

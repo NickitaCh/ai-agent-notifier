@@ -14,6 +14,7 @@ const pendingDecisions = require('./pending-decisions');
 const auth = require('./auth');
 const telegram = require('./telegram');
 const metrics = require('./metrics');
+const i18n = require('./i18n');
 const feedback = require('./feedback');
 const { createLimiter } = require('./rate-limit');
 
@@ -26,6 +27,16 @@ function clientIp(req) {
   const forwarded = req.headers['x-forwarded-for'];
   if (forwarded) return forwarded.split(',')[0].trim();
   return req.socket.remoteAddress;
+}
+
+// Язык для ответа в Telegram. У бота нет токена юзера (сообщение приходит от
+// Telegram, а не от хоста), поэтому запись ищем по chat.id — линейным
+// перебором: юзеров сотни, а сообщения боту приходят несопоставимо реже
+// событий, так что индекс тут был бы преждевременным.
+function localeForChat(from, chatId) {
+  const id = chatId !== undefined ? chatId : from && from.id;
+  const saved = Object.values(store.load(config.dataDir)).find((u) => u.chatId === id);
+  return i18n.pick(saved && saved.locale, from && from.language_code);
 }
 
 function readJsonBody(req) {
@@ -98,26 +109,25 @@ async function processTelegramUpdate(update) {
     const eventId = sep === -1 ? null : cq.data.slice(sep + 1);
     if (eventId && (action === 'allow' || action === 'deny')) {
       pendingDecisions.resolveDecision(eventId, action);
-      await telegram.answerCallbackQuery(config.botToken, cq.id, action === 'allow' ? 'Разрешено' : 'Отклонено');
+      const locale = localeForChat(cq.from);
+      const text = i18n.t(locale, action === 'allow' ? 'decision.allowed' : 'decision.denied');
+      await telegram.answerCallbackQuery(config.botToken, cq.id, text);
     }
   }
 }
 
 async function handleFeedback(message) {
   const chatId = message.chat.id;
+  const locale = localeForChat(message.from, chatId);
   const text = message.text.trim().slice('/feedback'.length).trim();
 
   if (!text) {
-    await telegram.sendText(
-      config.botToken,
-      chatId,
-      'Напишите пожелание или опишите проблему одной командой, например:\n/feedback не приходят уведомления после перезагрузки'
-    );
+    await telegram.sendText(config.botToken, chatId, i18n.t(locale, 'bot.feedbackUsage'));
     return;
   }
 
   if (!feedbackLimiter.allow(String(chatId))) {
-    await telegram.sendText(config.botToken, chatId, 'Слишком много сообщений подряд — попробуйте позже.');
+    await telegram.sendText(config.botToken, chatId, i18n.t(locale, 'bot.feedbackTooMany'));
     return;
   }
 
@@ -126,7 +136,7 @@ async function handleFeedback(message) {
     record = feedback.save(config.dataDir, { chatId, text, username: message.from?.username || null });
   } catch (err) {
     console.error(`[feedback] ${err.message}`);
-    await telegram.sendText(config.botToken, chatId, 'Не получилось сохранить обращение. Попробуйте ещё раз позже.');
+    await telegram.sendText(config.botToken, chatId, i18n.t(locale, 'bot.feedbackSaveFailed'));
     return;
   }
 
@@ -141,11 +151,12 @@ async function handleFeedback(message) {
     }
   }
 
-  await telegram.sendText(config.botToken, chatId, '✅ Спасибо, передал. Если понадобится уточнить — напишу сюда же.');
+  await telegram.sendText(config.botToken, chatId, i18n.t(locale, 'bot.feedbackThanks'));
 }
 
 async function handleIncomingMessage(message) {
   const chatId = message.chat.id;
+  const locale = localeForChat(message.from, chatId);
   const text = message.text.trim();
 
   if (text.startsWith('/feedback')) {
@@ -156,31 +167,19 @@ async function handleIncomingMessage(message) {
   if (!text.startsWith('/start')) {
     // Раньше любое постороннее сообщение молча игнорировалось — человек,
     // написавший боту "не работает", не получал вообще ничего в ответ.
-    await telegram.sendText(
-      config.botToken,
-      chatId,
-      'Я умею две вещи: привязывать расширение (кнопка «Привязать через бота» в настройках) и принимать обратную связь — напишите /feedback и текст.'
-    );
+    await telegram.sendText(config.botToken, chatId, i18n.t(locale, 'bot.help'));
     return;
   }
 
   const code = text.slice('/start'.length).trim();
   if (!code) {
-    await telegram.sendText(
-      config.botToken,
-      chatId,
-      'Этот бот используется для привязки AI Agent Notifier. Откройте попап расширения → «Телефон» → «Привязать через бота».'
-    );
+    await telegram.sendText(config.botToken, chatId, i18n.t(locale, 'bot.pairIntro'));
     return;
   }
 
   const entry = pairingCodes.getCode(code);
   if (!entry) {
-    await telegram.sendText(
-      config.botToken,
-      chatId,
-      'Код не найден или истёк. Вернитесь в настройки расширения и начните привязку заново.'
-    );
+    await telegram.sendText(config.botToken, chatId, i18n.t(locale, 'bot.codeNotFound'));
     return;
   }
 
@@ -193,19 +192,15 @@ async function handleIncomingMessage(message) {
     // Без этого счётчика про упёршийся кап узнаёшь только случайно — юзер
     // просто видит "бот на паузе" и уходит молча.
     metrics.recordPairing(config.dataDir, 'rejected_cap');
-    await telegram.sendText(
-      config.botToken,
-      chatId,
-      'Общий бот сейчас на паузе — слишком много подключений для беты. Попробуйте позже или используйте режим "свой бот" в настройках расширения.'
-    );
+    await telegram.sendText(config.botToken, chatId, i18n.t(locale, 'bot.capReached'));
     return;
   }
 
   const token = crypto.randomBytes(24).toString('hex');
-  store.createUser(config.dataDir, token, chatId);
+  store.createUser(config.dataDir, token, chatId, locale);
   pairingCodes.claimCode(code, token);
   metrics.recordPairing(config.dataDir, 'completed');
-  await telegram.sendText(config.botToken, chatId, '✅ Привязано! Можно вернуться в настройки расширения.');
+  await telegram.sendText(config.botToken, chatId, i18n.t(locale, 'bot.paired'));
 }
 
 // Только отправка + быстрый ack. НЕ ждёт решения здесь — POST, который
@@ -218,6 +213,12 @@ async function handleEvents(req, res) {
 
   const event = await readJsonBody(req);
   if (!event.id || !event.type) return sendJson(res, 400, { error: 'нужны как минимум id и type' });
+
+  // Язык, который прислал хост, — самый точный: это ровно то, что стоит
+  // в настройках расширения прямо сейчас. Запоминаем его для ответов бота,
+  // не привязанных к событию (/feedback, подсказки).
+  const locale = i18n.pick(event.locale, user.locale);
+  store.setLocale(config.dataDir, user.token, locale);
 
   const uid = metrics.recordEvent(config.dataDir, user.token, event);
 
@@ -235,7 +236,7 @@ async function handleEvents(req, res) {
   }
 
   try {
-    await telegram.sendEventMessage(config.botToken, user.chatId, event);
+    await telegram.sendEventMessage(config.botToken, user.chatId, event, locale);
   } catch (err) {
     metrics.recordDeliveryError(config.dataDir, user.token, err.message);
     return sendJson(res, 502, { error: `не удалось отправить в Telegram: ${err.message}` });

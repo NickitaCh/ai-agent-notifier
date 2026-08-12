@@ -1,0 +1,11 @@
+{
+  "event.titlePermission": "Agent needs permission",
+  "event.titleQuestion": "Agent asked a question",
+  "event.titleDone": "Agent finished",
+  "event.bodyDone": "Task complete, waiting for you",
+  "event.needsAttention": "needs your attention",
+  "event.answerInTerminal": " — answer in the terminal",
+  "event.allow": "✅ Allow",
+  "event.deny": "❌ Deny",
+  "test.summary": "Test notification from AI Agent Notifier"
+}

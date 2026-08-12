@@ -7,6 +7,7 @@
     "requireInteraction": true,
     "silent": false
   },
+  "locale": "",
   "permissionTimeoutMs": 570000,
   "stopDebounceMs": 20000,
   "permissionExcludeTools": [],
