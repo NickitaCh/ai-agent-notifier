@@ -37,6 +37,30 @@ test('повторный resolveDecision после первого — no-op, з
   assert.equal(await pendingDecisions.awaitDecision('ev4'), 'deny');
 });
 
+test('onResolve вызывается с решением от кнопки', () => {
+  const seen = [];
+  pendingDecisions.register('ev6', 5000, (decision) => seen.push(decision));
+  pendingDecisions.resolveDecision('ev6', 'allow');
+  pendingDecisions.resolveDecision('ev6', 'deny'); // повтор — не должен звать хук второй раз
+  assert.deepEqual(seen, ['allow']);
+});
+
+test('onResolve вызывается и на таймауте — иначе о нём никто снаружи не узнает', async () => {
+  const seen = [];
+  pendingDecisions.register('ev7', 10, (decision) => seen.push(decision));
+  await pendingDecisions.awaitDecision('ev7');
+  assert.deepEqual(seen, [null]);
+});
+
+test('упавший onResolve не мешает выдать решение ожидающему', async () => {
+  pendingDecisions.register('ev8', 5000, () => {
+    throw new Error('наблюдатель сломался');
+  });
+  const promise = pendingDecisions.awaitDecision('ev8');
+  pendingDecisions.resolveDecision('ev8', 'allow');
+  assert.equal(await promise, 'allow');
+});
+
 test('несколько awaitDecision на один eventId получают одно и то же решение', async () => {
   pendingDecisions.register('ev5', 5000);
   const p1 = pendingDecisions.awaitDecision('ev5');

@@ -6,6 +6,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
+    "report": "node bin/report.js",
     "test": "node --test"
   },
   "engines": {

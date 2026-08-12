@@ -13,9 +13,12 @@ const pairingCodes = require('./pairing-codes');
 const pendingDecisions = require('./pending-decisions');
 const auth = require('./auth');
 const telegram = require('./telegram');
+const metrics = require('./metrics');
+const feedback = require('./feedback');
 const { createLimiter } = require('./rate-limit');
 
 const pairStartLimiter = createLimiter(config.pairStartRateLimit);
+const feedbackLimiter = createLimiter(config.feedbackRateLimit);
 
 function clientIp(req) {
   // За nginx (см. nginx/aan-relay.conf) стоит X-Forwarded-For — сырой
@@ -52,10 +55,12 @@ function sendJson(res, status, payload) {
 
 async function handlePairStart(req, res) {
   if (!pairStartLimiter.allow(clientIp(req))) {
+    metrics.recordPairing(config.dataDir, 'rejected_rate');
     return sendJson(res, 429, { error: 'слишком много попыток, попробуйте позже' });
   }
   const code = pairingCodes.createCode(config.pairingCodeTtlMs);
   const username = await telegram.getBotUsername(config.botToken);
+  metrics.recordPairing(config.dataDir, 'started');
   sendJson(res, 200, { code, deepLink: `https://t.me/${username}?start=${code}` });
 }
 
@@ -98,10 +103,66 @@ async function processTelegramUpdate(update) {
   }
 }
 
+async function handleFeedback(message) {
+  const chatId = message.chat.id;
+  const text = message.text.trim().slice('/feedback'.length).trim();
+
+  if (!text) {
+    await telegram.sendText(
+      config.botToken,
+      chatId,
+      'Напишите пожелание или опишите проблему одной командой, например:\n/feedback не приходят уведомления после перезагрузки'
+    );
+    return;
+  }
+
+  if (!feedbackLimiter.allow(String(chatId))) {
+    await telegram.sendText(config.botToken, chatId, 'Слишком много сообщений подряд — попробуйте позже.');
+    return;
+  }
+
+  let record;
+  try {
+    record = feedback.save(config.dataDir, { chatId, text, username: message.from?.username || null });
+  } catch (err) {
+    console.error(`[feedback] ${err.message}`);
+    await telegram.sendText(config.botToken, chatId, 'Не получилось сохранить обращение. Попробуйте ещё раз позже.');
+    return;
+  }
+
+  // Пересылка админу — необязательная: обращение уже на диске, и если
+  // ADMIN_CHAT_ID не задан или личка недоступна, юзеру всё равно надо
+  // ответить "спасибо", а не "ошибка".
+  if (config.adminChatId) {
+    try {
+      await telegram.sendText(config.botToken, config.adminChatId, feedback.formatForAdmin(record));
+    } catch (err) {
+      console.error(`[feedback] не удалось переслать админу: ${err.message}`);
+    }
+  }
+
+  await telegram.sendText(config.botToken, chatId, '✅ Спасибо, передал. Если понадобится уточнить — напишу сюда же.');
+}
+
 async function handleIncomingMessage(message) {
   const chatId = message.chat.id;
   const text = message.text.trim();
-  if (!text.startsWith('/start')) return;
+
+  if (text.startsWith('/feedback')) {
+    await handleFeedback(message);
+    return;
+  }
+
+  if (!text.startsWith('/start')) {
+    // Раньше любое постороннее сообщение молча игнорировалось — человек,
+    // написавший боту "не работает", не получал вообще ничего в ответ.
+    await telegram.sendText(
+      config.botToken,
+      chatId,
+      'Я умею две вещи: привязывать расширение (кнопка «Привязать через бота» в настройках) и принимать обратную связь — напишите /feedback и текст.'
+    );
+    return;
+  }
 
   const code = text.slice('/start'.length).trim();
   if (!code) {
@@ -129,6 +190,9 @@ async function handleIncomingMessage(message) {
   const existingUsers = Object.values(store.load(config.dataDir));
   const isNewChat = !existingUsers.some((u) => u.chatId === chatId);
   if (isNewChat && new Set(existingUsers.map((u) => u.chatId)).size >= config.maxUsers) {
+    // Без этого счётчика про упёршийся кап узнаёшь только случайно — юзер
+    // просто видит "бот на паузе" и уходит молча.
+    metrics.recordPairing(config.dataDir, 'rejected_cap');
     await telegram.sendText(
       config.botToken,
       chatId,
@@ -140,6 +204,7 @@ async function handleIncomingMessage(message) {
   const token = crypto.randomBytes(24).toString('hex');
   store.createUser(config.dataDir, token, chatId);
   pairingCodes.claimCode(code, token);
+  metrics.recordPairing(config.dataDir, 'completed');
   await telegram.sendText(config.botToken, chatId, '✅ Привязано! Можно вернуться в настройки расширения.');
 }
 
@@ -154,14 +219,25 @@ async function handleEvents(req, res) {
   const event = await readJsonBody(req);
   if (!event.id || !event.type) return sendJson(res, 400, { error: 'нужны как минимум id и type' });
 
+  const uid = metrics.recordEvent(config.dataDir, user.token, event);
+
   const isActionable = event.type === 'permission_request' && event.needsDecision !== false;
   // Регистрируем ДО отправки в Telegram — чтобы не проиграть гонку с
   // мгновенным нажатием кнопки (см. pending-decisions.js).
-  if (isActionable) pendingDecisions.register(event.id, config.decisionTimeoutMs);
+  if (isActionable) {
+    // Отсчёт латентности начинаем здесь же, а не в момент отправки в
+    // Telegram: юзер ждёт с момента, как агент упёрся в вопрос, и время
+    // самой отправки — тоже часть этого ожидания.
+    metrics.trackActionable(event.id, uid, event.agent);
+    pendingDecisions.register(event.id, config.decisionTimeoutMs, (decision) =>
+      metrics.recordDecision(config.dataDir, event.id, decision === null ? 'timeout' : decision)
+    );
+  }
 
   try {
     await telegram.sendEventMessage(config.botToken, user.chatId, event);
   } catch (err) {
+    metrics.recordDeliveryError(config.dataDir, user.token, err.message);
     return sendJson(res, 502, { error: `не удалось отправить в Telegram: ${err.message}` });
   }
 
@@ -202,6 +278,10 @@ function route(req, res) {
 }
 
 function main() {
+  // Чистим на старте, а не по таймеру: рестарт сервиса случается заведомо
+  // чаще, чем раз в полгода (деплой, обновление хоста), а лишний
+  // долгоживущий таймер в процессе — лишняя сущность.
+  metrics.pruneOldMonths(config.dataDir);
   const server = http.createServer(route);
   server.listen(config.port, '127.0.0.1', () => {
     console.log(`[server] слушаю 127.0.0.1:${config.port}`);

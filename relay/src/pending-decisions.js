@@ -19,8 +19,12 @@ const state = new Map();
 // и понял бы это как таймаут, хотя решение на самом деле было.
 const CLEANUP_DELAY_MS = 30000;
 
-function register(eventId, timeoutMs) {
-  const entry = { decision: undefined, waiters: [], timer: null };
+// onResolve (необязательный) вызывается ровно один раз на событие, каким бы
+// путём оно ни разрешилось — кнопкой или таймаутом. Через него сервер вешает
+// метрику исхода/латентности, не заставляя этот модуль знать про метрики:
+// таймаут срабатывает внутри, и снаружи о нём иначе никто бы не узнал.
+function register(eventId, timeoutMs, onResolve = null) {
+  const entry = { decision: undefined, waiters: [], timer: null, onResolve };
   entry.timer = setTimeout(() => resolveDecision(eventId, null), timeoutMs);
   state.set(eventId, entry);
 }
@@ -32,6 +36,14 @@ function resolveDecision(eventId, decision) {
   entry.decision = decision;
   entry.waiters.forEach((resolve) => resolve(decision));
   entry.waiters = [];
+  if (entry.onResolve) {
+    try {
+      entry.onResolve(decision);
+    } catch (err) {
+      // Побочный наблюдатель не должен ломать выдачу решения тому, кто его ждёт.
+      console.error(`[pending-decisions] onResolve упал: ${err.message}`);
+    }
+  }
   setTimeout(() => state.delete(eventId), CLEANUP_DELAY_MS).unref();
 }
 
