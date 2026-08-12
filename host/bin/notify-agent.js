@@ -34,7 +34,6 @@
 const { randomUUID } = require('crypto');
 const { connect } = require('../src/ipc-client');
 const { writeLine, createLineReader } = require('../src/ndjson');
-const { isBlanketlyAllowed } = require('../src/claude-permissions');
 const settingsStore = require('../src/settings');
 const { createFileLogger } = require('../src/file-logger');
 const { hookLogFilePath } = require('../src/constants');
@@ -140,17 +139,16 @@ async function runPermission() {
   hookLog(`stdin прочитан (${Date.now() - startedAt}мс), tool=${hookInput.tool_name || '-'} raw_len=${raw.length}`);
 
   // PermissionRequest сам по себе уже дёргается Claude Code только когда
-  // решение реально нужно (см. комментарий в шапке файла) — эти две
-  // проверки теперь подстраховка на крайний случай, а не основной фильтр:
-  // 1) на случай если какая-то версия/режим Claude Code всё же вызовет хук
-  //    для уже разрешённого действия;
-  // 2) ручной оверрайд пользователя в routing.json (permissionExcludeTools) —
-  //    "да, Claude бы спросил, но мне всё равно не нужно уведомление".
-  if (isBlanketlyAllowed(hookInput.tool_name, hookInput.tool_input, hookInput.permission_mode)) {
-    hookLog(`выход: isBlanketlyAllowed=true (permission_mode=${hookInput.permission_mode || '-'})`);
-    process.exit(0);
-  }
-
+  // решение реально нужно (см. комментарий в шапке файла) — раньше здесь
+  // ещё стояла своя проверка isBlanketlyAllowed(permission_mode), считавшая
+  // "auto"/"bypassPermissions"/"dontAsk" всегда безопасными для тихого
+  // пропуска. Убрана: живой случай — ask-правило "Bash(rm*)" в
+  // ~/.claude/settings.json переопределяет auto-режим для конкретной
+  // команды, Claude Code корректно спрашивает подтверждение в терминале, а
+  // наша проверка (смотрела только на permission_mode, не на ask-правила)
+  // всё равно тихо гасила уведомление. Единственный оставшийся оверрайд —
+  // ручной, через routing.json (permissionExcludeTools) ниже: "да, Claude
+  // бы спросил, но мне всё равно не нужно уведомление".
   const settings = settingsStore.load();
   const excludeTools = settings.permissionExcludeTools || [];
   if (excludeTools.includes(hookInput.tool_name)) {
