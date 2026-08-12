@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Agent Notifier</title>
+<meta name="description" content="Get notified — and reply — the moment your AI coding agent needs a decision. Desktop toast with inline Allow/Deny, optional phone delivery, works with Claude Code, Cursor, Copilot CLI and Codex CLI." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔔</text></svg>" />
+<style>
+  :root {
+    --paper: #f1f2ee;
+    --paper-raised: #ffffff;
+    --ink: #1c1f1e;
+    --muted: #63665f;
+    --accent: #2b5d63;
+    --accent-soft: #dceae7;
+    --line: #d8d9d2;
+    --good: #3f7d5c;
+    --bad: #9a4b43;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #14161a;
+      --paper-raised: #1b1e22;
+      --ink: #ededea;
+      --muted: #9aa09a;
+      --accent: #7ec1c2;
+      --accent-soft: #1e3a3a;
+      --line: #2b2e31;
+      --good: #6fbf95;
+      --bad: #d98f87;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  body {
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+    line-height: 1.6;
+  }
+  ::selection { background: var(--accent-soft); }
+
+  .wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 64px 24px 96px;
+  }
+
+  header.doc-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--line);
+  }
+  .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+  }
+  .mark .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--good);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    flex-shrink: 0;
+  }
+  .head-right { display: flex; align-items: center; gap: 14px; }
+  .doc-meta {
+    text-align: right;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .lang-toggle {
+    display: flex;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 2px;
+    background: var(--paper-raised);
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  }
+  .lang-toggle button {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 5px 11px;
+    border-radius: 16px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .lang-toggle button.active { background: var(--accent); color: var(--paper); }
+  .lang-toggle button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  h1 {
+    font-size: clamp(30px, 4.6vw, 42px);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .subtitle {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px;
+    color: var(--muted);
+    margin: 0 0 28px;
+    max-width: 56ch;
+  }
+
+  .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 52px; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    line-height: 1;
+    border: 1px solid transparent;
+  }
+  .btn.primary { background: var(--accent); color: var(--paper); }
+  .btn.primary:hover { opacity: 0.92; }
+  .btn.secondary { border-color: var(--line); color: var(--ink); background: var(--paper-raised); }
+  .btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  section { margin-bottom: 52px; }
+  .eyebrow {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--muted);
+    margin: 0 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  h2 {
+    font-size: clamp(20px, 2.6vw, 25px);
+    font-weight: 400;
+    letter-spacing: -0.005em;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+  p { font-size: 15.5px; margin: 0 0 14px; max-width: 62ch; }
+  p:last-child { margin-bottom: 0; }
+  section > p.lead {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 58ch;
+  }
+
+  /* --- уведомление-мокап --- */
+  .mock-row { display: flex; justify-content: center; margin: 26px 0 6px; }
+  .mock-toast {
+    width: 100%;
+    max-width: 380px;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: 0 14px 34px rgba(20, 22, 26, 0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    .mock-toast { box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45); }
+  }
+  .mock-toast .mt-row { display: flex; gap: 12px; align-items: flex-start; }
+  .mock-toast .mt-icon {
+    width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+    background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+  }
+  .mock-toast .mt-title {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 13.5px; font-weight: 600; color: var(--ink);
+  }
+  .mock-toast .mt-body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 12.5px; color: var(--muted); margin-top: 3px;
+  }
+  .mock-toast .mt-buttons { display: flex; gap: 8px; margin-top: 14px; }
+  .mock-toast .mt-buttons span {
+    flex: 1; text-align: center; padding: 8px 0; border-radius: 7px;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 12px; font-weight: 600;
+  }
+  .mock-toast .mt-allow { background: var(--good); color: #fff; }
+  .mock-toast .mt-deny { border: 1px solid var(--line); color: var(--muted); }
+  .mock-caption {
+    text-align: center;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 12px;
+  }
+
+  /* --- сетка фич --- */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+  }
+  .feature-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 18px 20px;
+  }
+  .feature-card .f-glyph {
+    width: 26px; height: 26px; color: var(--accent); margin-bottom: 12px;
+  }
+  .feature-card h3 {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px; font-weight: 600; margin: 0 0 6px; color: var(--ink);
+  }
+  .feature-card p {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px; color: var(--muted); margin: 0; max-width: none;
+  }
+
+  /* --- поток --- */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 22px 0 4px;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 11.5px;
+    flex-wrap: wrap;
+  }
+  .flow .node {
+    padding: 9px 13px;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .flow .node.you { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .flow .arrow {
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+    position: relative;
+    min-width: 20px;
+  }
+  .flow .arrow::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: -3px;
+    width: 6px;
+    height: 6px;
+    border-right: 1px solid var(--muted);
+    border-bottom: 1px solid var(--muted);
+    transform: rotate(-45deg);
+  }
+  .flow-caption {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+
+  /* --- бейджи агентов / провайдеров --- */
+  .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .badge {
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 11.5px;
+    padding: 6px 11px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--paper-raised);
+    color: var(--ink);
+  }
+
+  ul.checks {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  ul.checks li {
+    display: flex;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+  }
+  ul.checks li:last-child { border-bottom: none; }
+  ul.checks .glyph { flex-shrink: 0; width: 17px; height: 17px; margin-top: 2px; color: var(--accent); }
+  ul.checks b { font-weight: 600; }
+  ul.checks span.detail { color: var(--muted); }
+
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  code {
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 0.87em;
+    background: var(--accent-soft);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px 16px;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  footer .footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
+  footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+  footer a:hover { color: var(--accent); }
+
+  /* i18n: toggle whole language blocks by data-lang on <html> */
+  html:not([data-lang="ru"]):not([data-lang="es"]) .i18n-ru,
+  html:not([data-lang="ru"]):not([data-lang="es"]) .i18n-es { display: none !important; }
+  html[data-lang="ru"] .i18n-en, html[data-lang="ru"] .i18n-es { display: none !important; }
+  html[data-lang="es"] .i18n-en, html[data-lang="es"] .i18n-ru { display: none !important; }
+
+  @media (max-width: 520px) {
+    header.doc-head { flex-direction: column; gap: 10px; }
+    .head-right { align-self: flex-start; }
+    .doc-meta { text-align: left; }
+    .cta-row .btn { flex: 1 1 auto; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="doc-head">
+    <div class="mark"><span class="dot"></span>AI&nbsp;AGENT&nbsp;NOTIFIER</div>
+    <div class="head-right">
+      <div class="doc-meta">
+        <span class="i18n-en">Chrome extension + local companion</span>
+        <span class="i18n-ru">Расширение Chrome + локальный компаньон</span>
+        <span class="i18n-es">Extensión de Chrome + complemento local</span>
+      </div>
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button type="button" data-set-lang="ru">RU</button>
+        <button type="button" data-set-lang="en">EN</button>
+        <button type="button" data-set-lang="es">ES</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= EN ================= -->
+  <div class="i18n-en">
+    <h1>Your AI agent stopped to ask you something. Now you'll actually know.</h1>
+    <p class="subtitle">
+      Claude Code, Cursor, Copilot CLI and Codex CLI all pause and wait for a
+      decision — usually while you're in another window, another room, or
+      away from the desk entirely. AI Agent Notifier tells you the moment it
+      happens, and lets you answer without touching the terminal.
+    </p>
+
+    <div class="cta-row">
+      <a class="btn primary" href="https://github.com/NickitaCh/ai-agent-notifier/releases/latest/download/ai-agent-notifier.exe" target="_blank" rel="noopener">⬇ Download for Windows</a>
+      <a class="btn secondary" href="https://github.com/NickitaCh/ai-agent-notifier#readme" target="_blank" rel="noopener">View on GitHub</a>
+    </div>
+
+    <section>
+      <div class="eyebrow">What it looks like</div>
+      <p class="lead">
+        A real desktop notification, with the decision built in — no
+        switching back to the terminal to type <code>y</code>.
+      </p>
+      <div class="mock-row">
+        <div class="mock-toast">
+          <div class="mt-row">
+            <div class="mt-icon">🔔</div>
+            <div>
+              <div class="mt-title">Agent needs permission — ai-agent-notifier · a1b2</div>
+              <div class="mt-body">Bash — <code>rm -rf build/</code></div>
+            </div>
+          </div>
+          <div class="mt-buttons">
+            <span class="mt-allow">✅ Allow</span>
+            <span class="mt-deny">❌ Deny</span>
+          </div>
+        </div>
+      </div>
+      <p class="mock-caption">Illustrative mockup — not a screenshot.</p>
+    </section>
+
+    <section>
+      <div class="eyebrow">Why it exists</div>
+      <p>
+        Coding agents ask for permission mid-task, all the time — and their
+        hook timeout is measured in minutes, not hours. If you're not
+        looking at that terminal when it happens, the agent just sits there,
+        blocked, until it gives up. This closes that gap: the notification
+        finds you, and your answer finds its way back to the still-running
+        agent process, exactly as if you'd typed it yourself.
+      </p>
+    </section>
+
+    <section>
+      <div class="eyebrow">Features</div>
+      <div class="features">
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Decide from the notification</h3>
+          <p>Allow/Deny buttons right on the toast — your answer routes back into the exact hook call that's waiting for it.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Works with your agent</h3>
+          <p>Claude Code, Cursor, GitHub Copilot CLI, and OpenAI Codex CLI — one CLI adapter per agent's own hook format.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Reach your phone, optionally</h3>
+          <p>ntfy, Discord/Slack webhook, Pushover, or Telegram (your own bot or a shared one) — off by default, on if you want it.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Per-project quiet hours</h3>
+          <p>Snooze one noisy project for 30 minutes, 1 hour, or 3 — without silencing every other session running elsewhere.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Russian, English, Spanish</h3>
+          <p>Set once in the popup, or picked up automatically from your browser on first run. One language across every surface.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Local by default</h3>
+          <p>Extension and companion talk over 127.0.0.1, nothing else. See the <a href="privacy.html">privacy page</a> for exactly what the optional phone channel changes.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="eyebrow">How it works</div>
+      <div class="flow">
+        <div class="node you">Coding agent</div>
+        <div class="arrow"></div>
+        <div class="node">local companion</div>
+        <div class="arrow"></div>
+        <div class="node you">notification</div>
+        <div class="arrow"></div>
+        <div class="node you">your decision</div>
+      </div>
+      <p class="flow-caption">
+        The hook fires, the companion routes it to your desktop (and your
+        phone, if configured), and your click travels the same path back —
+        the agent's process is still alive and waiting the whole time.
+      </p>
+    </section>
+
+    <section>
+      <div class="eyebrow">Get started</div>
+      <p>
+        On Windows, the standalone <code>.exe</code> is the fastest path — no
+        Node.js required. It unpacks the extension, registers the local
+        companion, and offers to wire up your agent's hooks automatically.
+      </p>
+      <div class="cta-row" style="margin-bottom: 8px;">
+        <a class="btn primary" href="https://github.com/NickitaCh/ai-agent-notifier/releases/latest/download/ai-agent-notifier.exe" target="_blank" rel="noopener">⬇ Download for Windows</a>
+        <a class="btn secondary" href="https://github.com/NickitaCh/ai-agent-notifier#%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-macoslinux" target="_blank" rel="noopener">macOS / Linux (via Node.js)</a>
+      </div>
+      <p style="font-size: 13px; color: var(--muted);">
+        Open source, MIT licensed. Full install and configuration details are
+        in the <a href="https://github.com/NickitaCh/ai-agent-notifier#readme" target="_blank" rel="noopener">README</a>.
+      </p>
+    </section>
+  </div>
+
+  <!-- ================= RU ================= -->
+  <div class="i18n-ru">
+    <h1>Ваш агент остановился и что-то спрашивает. Теперь вы об этом узнаете.</h1>
+    <p class="subtitle">
+      Claude Code, Cursor, Copilot CLI и Codex CLI то и дело замирают в
+      ожидании решения — обычно как раз тогда, когда вы в другом окне, в
+      другой комнате или вообще не за компьютером. AI Agent Notifier
+      сообщает об этом сразу и даёт ответить, не возвращаясь в терминал.
+    </p>
+
+    <div class="cta-row">
+      <a class="btn primary" href="https://github.com/NickitaCh/ai-agent-notifier/releases/latest/download/ai-agent-notifier.exe" target="_blank" rel="noopener">⬇ Скачать для Windows</a>
+      <a class="btn secondary" href="https://github.com/NickitaCh/ai-agent-notifier#readme" target="_blank" rel="noopener">Открыть на GitHub</a>
+    </div>
+
+    <section>
+      <div class="eyebrow">Как это выглядит</div>
+      <p class="lead">
+        Обычное системное уведомление, но с решением прямо внутри — не нужно
+        возвращаться в терминал, чтобы набрать <code>y</code>.
+      </p>
+      <div class="mock-row">
+        <div class="mock-toast">
+          <div class="mt-row">
+            <div class="mt-icon">🔔</div>
+            <div>
+              <div class="mt-title">Агент просит разрешение — ai-agent-notifier · a1b2</div>
+              <div class="mt-body">Bash — <code>rm -rf build/</code></div>
+            </div>
+          </div>
+          <div class="mt-buttons">
+            <span class="mt-allow">✅ Разрешить</span>
+            <span class="mt-deny">❌ Отклонить</span>
+          </div>
+        </div>
+      </div>
+      <p class="mock-caption">Иллюстративный мокап, не реальный скриншот.</p>
+    </section>
+
+    <section>
+      <div class="eyebrow">Зачем это нужно</div>
+      <p>
+        Агенты постоянно спрашивают разрешение прямо посреди задачи — а
+        таймаут хука измеряется минутами, не часами. Если в этот момент вы
+        не смотрите в терминал, агент просто зависает и в итоге сдаётся.
+        Уведомление находит вас само, а ваш ответ тем же путём возвращается
+        в ещё живой процесс агента — как будто вы набрали его сами.
+      </p>
+    </section>
+
+    <section>
+      <div class="eyebrow">Возможности</div>
+      <div class="features">
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Решение прямо из уведомления</h3>
+          <p>Кнопки Разрешить/Отклонить на самом тосте — ответ уходит ровно в тот хук, который его ждёт.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Работает с вашим агентом</h3>
+          <p>Claude Code, Cursor, GitHub Copilot CLI и OpenAI Codex CLI — свой адаптер под формат хуков каждого агента.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Опционально — на телефон</h3>
+          <p>ntfy, вебхук Discord/Slack, Pushover или Telegram (свой бот или общий) — по умолчанию выключено, включаете сами.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>«Не беспокоить» по проекту</h3>
+          <p>Заглушить один шумный проект на 30 минут, час или три — не трогая остальные сессии, которые крутятся параллельно.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Русский, английский, испанский</h3>
+          <p>Выбирается один раз в попапе или подхватывается из языка браузера при первом запуске. Один язык на всех поверхностях.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Локально по умолчанию</h3>
+          <p>Расширение и компаньон общаются только через 127.0.0.1. Что именно меняет опциональный канал «телефон» — на <a href="privacy.html">странице приватности</a>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="eyebrow">Как это устроено</div>
+      <div class="flow">
+        <div class="node you">ИИ-агент</div>
+        <div class="arrow"></div>
+        <div class="node">локальный компаньон</div>
+        <div class="arrow"></div>
+        <div class="node you">уведомление</div>
+        <div class="arrow"></div>
+        <div class="node you">ваше решение</div>
+      </div>
+      <p class="flow-caption">
+        Хук срабатывает, компаньон доставляет его на рабочий стол (и на
+        телефон, если настроено), а ваш клик тем же путём возвращается
+        обратно — процесс агента всё это время жив и ждёт.
+      </p>
+    </section>
+
+    <section>
+      <div class="eyebrow">Как начать</div>
+      <p>
+        На Windows самый быстрый путь — отдельный <code>.exe</code>, без
+        Node.js. Он сам распаковывает расширение, регистрирует локального
+        компаньона и предлагает автоматически подключить хуки вашего агента.
+      </p>
+      <div class="cta-row" style="margin-bottom: 8px;">
+        <a class="btn primary" href="https://github.com/NickitaCh/ai-agent-notifier/releases/latest/download/ai-agent-notifier.exe" target="_blank" rel="noopener">⬇ Скачать для Windows</a>
+        <a class="btn secondary" href="https://github.com/NickitaCh/ai-agent-notifier#%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-macoslinux" target="_blank" rel="noopener">macOS / Linux (через Node.js)</a>
+      </div>
+      <p style="font-size: 13px; color: var(--muted);">
+        Открытый исходный код, лицензия MIT. Полная инструкция по установке и
+        настройке — в <a href="https://github.com/NickitaCh/ai-agent-notifier#readme" target="_blank" rel="noopener">README</a>.
+      </p>
+    </section>
+  </div>
+
+  <!-- ================= ES ================= -->
+  <div class="i18n-es">
+    <h1>Tu agente se ha parado a preguntarte algo. Ahora te enterarás.</h1>
+    <p class="subtitle">
+      Claude Code, Cursor, Copilot CLI y Codex CLI se detienen constantemente
+      a esperar una decisión &mdash; normalmente justo cuando estás en otra
+      ventana, en otra habitación o lejos del ordenador. AI Agent Notifier te
+      avisa en el momento y te deja responder sin volver a la terminal.
+    </p>
+
+    <div class="cta-row">
+      <a class="btn primary" href="https://github.com/NickitaCh/ai-agent-notifier/releases/latest/download/ai-agent-notifier.exe" target="_blank" rel="noopener">⬇ Descargar para Windows</a>
+      <a class="btn secondary" href="https://github.com/NickitaCh/ai-agent-notifier#readme" target="_blank" rel="noopener">Ver en GitHub</a>
+    </div>
+
+    <section>
+      <div class="eyebrow">Así se ve</div>
+      <p class="lead">
+        Una notificación de escritorio normal, pero con la decisión
+        integrada &mdash; sin volver a la terminal a escribir <code>y</code>.
+      </p>
+      <div class="mock-row">
+        <div class="mock-toast">
+          <div class="mt-row">
+            <div class="mt-icon">🔔</div>
+            <div>
+              <div class="mt-title">El agente pide permiso — ai-agent-notifier · a1b2</div>
+              <div class="mt-body">Bash — <code>rm -rf build/</code></div>
+            </div>
+          </div>
+          <div class="mt-buttons">
+            <span class="mt-allow">✅ Permitir</span>
+            <span class="mt-deny">❌ Denegar</span>
+          </div>
+        </div>
+      </div>
+      <p class="mock-caption">Maqueta ilustrativa, no una captura real.</p>
+    </section>
+
+    <section>
+      <div class="eyebrow">Por qué existe</div>
+      <p>
+        Los agentes piden permiso en mitad de la tarea todo el rato, y el
+        tiempo de espera del hook se mide en minutos, no en horas. Si en ese
+        momento no estás mirando la terminal, el agente simplemente se queda
+        bloqueado hasta que se rinde. Esto cierra ese hueco: la notificación
+        te encuentra, y tu respuesta vuelve por el mismo camino hasta el
+        proceso del agente, que sigue vivo y esperando.
+      </p>
+    </section>
+
+    <section>
+      <div class="eyebrow">Funciones</div>
+      <div class="features">
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Decide desde la notificación</h3>
+          <p>Botones Permitir/Denegar en el propio aviso &mdash; tu respuesta vuelve exactamente al hook que la está esperando.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Funciona con tu agente</h3>
+          <p>Claude Code, Cursor, GitHub Copilot CLI y OpenAI Codex CLI &mdash; un adaptador por cada formato de hooks.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Opcionalmente, a tu teléfono</h3>
+          <p>ntfy, webhook de Discord/Slack, Pushover o Telegram (tu propio bot o uno compartido) &mdash; desactivado por defecto.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>«No molestar» por proyecto</h3>
+          <p>Silencia un proyecto ruidoso 30 minutos, 1 hora o 3 &mdash; sin afectar a las demás sesiones que corren en paralelo.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Ruso, inglés, español</h3>
+          <p>Se elige una vez en el popup, o se detecta del idioma de tu navegador en el primer arranque. Un solo idioma en todas partes.</p>
+        </div>
+        <div class="feature-card">
+          <svg class="f-glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Local por defecto</h3>
+          <p>La extensión y el complemento hablan solo por 127.0.0.1. Qué cambia exactamente el canal opcional de teléfono, en la <a href="privacy.html">página de privacidad</a>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="eyebrow">Cómo funciona</div>
+      <div class="flow">
+        <div class="node you">Agente de código</div>
+        <div class="arrow"></div>
+        <div class="node">complemento local</div>
+        <div class="arrow"></div>
+        <div class="node you">notificación</div>
+        <div class="arrow"></div>
+        <div class="node you">tu decisión</div>
+      </div>
+      <p class="flow-caption">
+        El hook se dispara, el complemento lo lleva a tu escritorio (y a tu
+        teléfono, si lo configuraste), y tu clic vuelve por el mismo camino
+        &mdash; el proceso del agente sigue vivo y esperando todo el rato.
+      </p>
+    </section>
+
+    <section>
+      <div class="eyebrow">Cómo empezar</div>
+      <p>
+        En Windows, el <code>.exe</code> independiente es el camino más
+        rápido &mdash; sin necesidad de Node.js. Descomprime la extensión,
+        registra el complemento local y se ofrece a conectar los hooks de tu
+        agente automáticamente.
+      </p>
+      <div class="cta-row" style="margin-bottom: 8px;">
+        <a class="btn primary" href="https://github.com/NickitaCh/ai-agent-notifier/releases/latest/download/ai-agent-notifier.exe" target="_blank" rel="noopener">⬇ Descargar para Windows</a>
+        <a class="btn secondary" href="https://github.com/NickitaCh/ai-agent-notifier#%D1%83%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0-macoslinux" target="_blank" rel="noopener">macOS / Linux (vía Node.js)</a>
+      </div>
+      <p style="font-size: 13px; color: var(--muted);">
+        Código abierto, licencia MIT. Instrucciones completas de instalación
+        y configuración en el <a href="https://github.com/NickitaCh/ai-agent-notifier#readme" target="_blank" rel="noopener">README</a>.
+      </p>
+    </section>
+  </div>
+
+  <footer>
+    <span class="i18n-en">AI Agent Notifier &mdash; MIT licensed</span>
+    <span class="i18n-ru">AI Agent Notifier &mdash; лицензия MIT</span>
+    <span class="i18n-es">AI Agent Notifier &mdash; licencia MIT</span>
+    <div class="footer-links">
+      <a href="privacy.html">
+        <span class="i18n-en">Privacy Policy</span>
+        <span class="i18n-ru">Политика конфиденциальности</span>
+        <span class="i18n-es">Política de privacidad</span>
+      </a>
+      <a href="https://github.com/NickitaCh/ai-agent-notifier" target="_blank" rel="noopener">github.com/NickitaCh/ai-agent-notifier</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var buttons = document.querySelectorAll('[data-set-lang]');
+    var titles = {
+      en: 'AI Agent Notifier',
+      ru: 'AI Agent Notifier — уведомления от ваших AI-агентов',
+      es: 'AI Agent Notifier — avisos de tus agentes de IA'
+    };
+    function apply(lang) {
+      root.setAttribute('data-lang', lang);
+      buttons.forEach(function (b) {
+        b.classList.toggle('active', b.dataset.setLang === lang);
+      });
+      document.title = titles[lang] || titles.en;
+      try { localStorage.setItem('aan-site-lang', lang); } catch (e) {}
+    }
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () { apply(b.dataset.setLang); });
+    });
+    var saved = null;
+    try { saved = localStorage.getItem('aan-site-lang'); } catch (e) {}
+    if (saved === 'ru' || saved === 'en' || saved === 'es') {
+      apply(saved);
+    } else {
+      // Как и в самом расширении: при первом визите язык страницы
+      // угадывается по языку браузера, а не всегда падает на английский.
+      var nav = (navigator.language || 'en').toLowerCase().split('-')[0];
+      apply(nav === 'ru' || nav === 'es' ? nav : 'en');
+    }
+  })();
+</script>
+</body>
+</html>

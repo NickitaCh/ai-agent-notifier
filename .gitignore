@@ -14,6 +14,10 @@ host/install/*.generated.json
 # снимок extension/ для standalone-сборки, пересоздаётся перед каждым build:*
 host/src/embedded-extension.js
 
+# снимок docs/*.html для раздачи с ai-agent-notify.ru, пересоздаётся
+# scripts/sync-public.js перед каждым тестом/деплоем relay
+relay/public/
+
 # логи, ОС-мусор
 *.log
 .DS_Store

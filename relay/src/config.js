@@ -20,6 +20,11 @@ module.exports = {
   webhookSecret: required('WEBHOOK_SECRET'),
   // Куда писать pairing-таблицу (token -> chatId), переживает рестарт процесса.
   dataDir: process.env.DATA_DIR || path.join(__dirname, '..', 'data'),
+  // Статические страницы (index.html/privacy.html), которые relay отдаёт по
+  // "/" и "/privacy.html" — сгенерированы из docs/ скриптом
+  // scripts/sync-public.js, см. его шапку про то, почему копия, а не общий
+  // источник в рантайме.
+  publicDir: process.env.PUBLIC_DIR || path.join(__dirname, '..', 'public'),
   // Максимум, сколько relay держит открытый POST /events, ожидая решения —
   // выровнено с потолком хука Claude Code (10 мин), см. host/README.md.
   decisionTimeoutMs: Number(process.env.DECISION_TIMEOUT_MS || 570000),

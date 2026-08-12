@@ -5,9 +5,10 @@
   "private": true,
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "sync-public": "node scripts/sync-public.js",
+    "start": "npm run sync-public && node src/server.js",
     "report": "node bin/report.js",
-    "test": "node --test"
+    "test": "npm run sync-public && node --test"
   },
   "engines": {
     "node": ">=20"

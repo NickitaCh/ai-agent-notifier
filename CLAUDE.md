@@ -36,15 +36,27 @@ npm run build:linux         # (untested — no Linux available to the author)
 The relay is a separate project with its own commands (run from `relay/`):
 
 ```
-npm test                    # node:test — runs test/*.test.js
+npm test                    # node:test — runs test/*.test.js (syncs public/ first)
 npm start                   # node src/server.js (needs BOT_TOKEN + WEBHOOK_SECRET)
-npm run report              # bin/report.js — usage summary from the metrics files
+npm run sync-public         # copies docs/{index,privacy}.html -> relay/public/
+npm run report               # bin/report.js — usage summary from the metrics files
 node tools/seed-report-data.js <dir>   # synthetic data to eyeball the report
 ```
 
 `node --test` treats **every** file under `test/` as a test file, not just
 `*.test.js`. That is why the seed generator lives in `tools/` — inside
 `test/` it ran on every `npm test` and failed as a broken test.
+
+`GET /` and `GET /privacy.html` on the relay serve `docs/index.html` and
+`docs/privacy.html` — the same pages GitHub Pages serves — so
+`https://ai-agent-notify.ru/` shows something instead of a bare 404.
+`docs/` is the only source of that text; `relay/public/` is a generated,
+gitignored copy (`scripts/sync-public.js`, same pattern as
+`host/scripts/embed-extension.js` for `extension/`). It has to be generated
+**locally, before deploying** — only `relay/`'s own subtree gets copied to
+the VPS, `docs/` never does, so the sync can't happen on the server itself.
+Forgetting this step doesn't 500; `servePublicFile` degrades to a plain 404,
+same as a page that was never deployed.
 
 There is no linter configured anywhere in the repo (no eslint config, no
 `.cursor/rules`, no `.github/copilot-instructions.md`) — don't invent lint

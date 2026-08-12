@@ -6,6 +6,8 @@
 // зависимостью на сервере, который и так общий с другими проектами.
 
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const crypto = require('crypto');
 const config = require('./config');
 const store = require('./store');
@@ -62,6 +64,25 @@ function sendJson(res, status, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(body);
+}
+
+// Отдаёт index.html/privacy.html из config.publicDir — они не рантайм-
+// контент, а статичный снимок docs/ (см. scripts/sync-public.js), поэтому
+// читаем файл синхронно на каждый запрос: трафика на эти страницы немного,
+// а держать их в памяти и инвалидировать при обновлении — сложность, не
+// оправданная нагрузкой.
+function servePublicFile(res, filename) {
+  const target = path.join(config.publicDir, filename);
+  fs.readFile(target, 'utf8', (err, html) => {
+    if (err) {
+      // Публичной странице ещё не пришлось на этой машине — это не 500
+      // относительно API, просто "npm run sync-public забыли перед
+      // деплоем", молча деградируем в обычный 404.
+      res.writeHead(404).end();
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(html);
+  });
 }
 
 async function handlePairStart(req, res) {
@@ -261,7 +282,9 @@ function route(req, res) {
   const decisionMatch = req.method === 'GET' && /^\/events\/([^/]+)\/decision$/.exec(url.pathname);
 
   let handler = null;
-  if (req.method === 'POST' && url.pathname === '/pair/start') handler = handlePairStart;
+  if (req.method === 'GET' && url.pathname === '/') handler = (rq, rs) => servePublicFile(rs, 'index.html');
+  else if (req.method === 'GET' && url.pathname === '/privacy.html') handler = (rq, rs) => servePublicFile(rs, 'privacy.html');
+  else if (req.method === 'POST' && url.pathname === '/pair/start') handler = handlePairStart;
   else if (req.method === 'GET' && url.pathname === '/pair/status') handler = (rq, rs) => handlePairStatus(rq, rs, url);
   else if (req.method === 'POST' && url.pathname === '/telegram/webhook') handler = handleTelegramWebhook;
   else if (req.method === 'POST' && url.pathname === '/events') handler = handleEvents;
