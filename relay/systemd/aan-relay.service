@@ -10,6 +10,20 @@ Restart=always
 RestartSec=3
 Environment=PORT=8443
 Environment=DATA_DIR=/opt/aan-relay/data
+# Без этих двух флагов исходящие запросы к api.telegram.org падают с
+# "fetch failed" примерно в двух случаях из трёх на холодном соединении.
+# Диагностика (12.08.2026): DNS отдаёт и A, и AAAA, но IPv6-маршрута на этой
+# машине нет вовсе; curl и прямой https-запрос по IPv4 из node работают
+# стабильно, а fetch (undici) — нет. Виноват Happy Eyeballs
+# (autoSelectFamily, включён по умолчанию с Node 20): попытка по IPv6
+# обрывает всю операцию вместо того, чтобы уступить IPv4.
+# ipv4first делает порядок адресов детерминированным, no-network-family-
+# autoselection убирает саму гонку. Проверено: 6/6 успешных холодных
+# соединений против 0/6 без флагов.
+#
+# Кавычки обязательны: без них systemd разрежет значение по пробелу и до
+# процесса доедет только первый флаг (проверено — второй молча терялся).
+Environment="NODE_OPTIONS=--dns-result-order=ipv4first --no-network-family-autoselection"
 # BOT_TOKEN и WEBHOOK_SECRET — в /etc/aan-relay.env (не в этом файле и не в
 # репозитории), см. EnvironmentFile ниже.
 EnvironmentFile=/etc/aan-relay.env
