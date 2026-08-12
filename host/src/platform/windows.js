@@ -58,10 +58,32 @@ function unregisterNativeHost(hostName, browser = 'chrome') {
   }
 }
 
+// os.release() на Windows возвращает "10.0.26200" — маркетингового номера
+// версии там нет вообще, Windows 11 продолжает представляться как 10.0.
+// Отличить 10 от 11 можно только по номеру сборки: 22000 — первая сборка
+// Windows 11. Сборку оставляем в строке: она точнее, чем "11", когда речь
+// про баг, воспроизводящийся только на конкретном обновлении.
+// Оговорка: Windows Server тоже отдаёт 10.0.x (2022 — сборка 20348), и по
+// этой логике определится как "10". Приемлемо — среди юзеров десктопного
+// расширения серверных редакций почти не бывает.
+function parseWindowsVersion(release) {
+  const [major, , build] = String(release).split('.');
+  if (major !== '10') return String(release);
+  const buildNumber = Number(build);
+  if (!Number.isFinite(buildNumber)) return String(release);
+  return `${buildNumber >= 22000 ? '11' : '10'}.${buildNumber}`;
+}
+
+function osInfo() {
+  return { os: 'windows', osVersion: parseWindowsVersion(os.release()) };
+}
+
 module.exports = {
   configDir,
   nativeHostManifestDir,
   registerNativeHost,
   unregisterNativeHost,
   supportedBrowsers,
+  osInfo,
+  parseWindowsVersion,
 };

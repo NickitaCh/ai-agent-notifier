@@ -19,6 +19,7 @@
 // (notification/badge/phone идут последовательно) до 9.5 минут.
 
 const extensionChannel = require('./extension-channel');
+const { clientInfo } = require('../client-info');
 
 const RELAY_BASE_URL = 'https://ai-agent-notify.ru';
 
@@ -152,12 +153,23 @@ async function pollRelayDecision(token, eventId) {
   if (data.decision) extensionChannel.resolveDecision(eventId, data.decision);
 }
 
+// Слепок клиента (ОС/версия хоста/архитектура) прикладываем к КАЖДОМУ
+// событию, а не отдельным хендшейком при пейринге: отдельный эндпоинт
+// пришлось бы ещё и вызывать по расписанию, чтобы данные не устаревали
+// после обновления хоста или переустановки ОС, а так они всегда свежие
+// ценой ~60 байт на событие. Отключается тумблером phone.relayMetrics —
+// сами события при этом продолжают ходить, отключается только статистика.
+function buildRelayBody(event, phone) {
+  if (phone.relayMetrics === false) return event;
+  return { ...event, client: clientInfo() };
+}
+
 async function sendRelay(event, phone) {
   if (!phone.relayToken) return;
   const res = await fetch(`${RELAY_BASE_URL}/events`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${phone.relayToken}` },
-    body: JSON.stringify(event),
+    body: JSON.stringify(buildRelayBody(event, phone)),
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   await assertOk(res, 'relay');
@@ -212,4 +224,4 @@ async function pairStatus(code) {
   return res.json(); // { paired, token? } либо { paired: false, expired: true }
 }
 
-module.exports = { send, buildMessage, pairStart, pairStatus };
+module.exports = { send, buildMessage, pairStart, pairStatus, buildRelayBody };

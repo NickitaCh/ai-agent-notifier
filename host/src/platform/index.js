@@ -7,6 +7,8 @@
 //   nativeHostManifestDir(): string               — куда кладём/откуда читаем host-манифест
 //   registerNativeHost(hostName, manifestPath)    — зарегистрировать native messaging host
 //   unregisterNativeHost(hostName)                — снять регистрацию
+//   osInfo(): { os, osVersion }                   — ОС и её версия в читаемом виде
+//                                                   (см. client-info.js — кто и зачем это шлёт)
 
 const impls = {
   win32: () => require('./windows'),

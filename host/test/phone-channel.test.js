@@ -203,6 +203,35 @@ test('send: relay шлёт событие с Bearer-токеном на /events'
   );
 });
 
+test('buildRelayBody: по умолчанию прикладывает слепок клиента к событию', () => {
+  const body = phoneChannel.buildRelayBody({ id: 'ev-1', type: 'task_done' }, { relayToken: 't' });
+  assert.equal(body.id, 'ev-1');
+  assert.ok(['windows', 'macos', 'linux'].includes(body.client.os));
+  assert.ok(body.client.hostVersion.length > 0);
+});
+
+test('buildRelayBody: relayMetrics:false шлёт голое событие, без client', () => {
+  const event = { id: 'ev-2', type: 'task_done' };
+  const body = phoneChannel.buildRelayBody(event, { relayToken: 't', relayMetrics: false });
+  assert.equal(body.client, undefined);
+  assert.deepEqual(body, event);
+});
+
+test('send: relay кладёт client в тело запроса', async () => {
+  await withFetch(
+    () => okResponse({ ok: true }),
+    async (calls) => {
+      await phoneChannel.send(
+        { id: 'ev-relay-4', type: 'task_done' },
+        { phone: { provider: 'relay', relayToken: 'tok-xyz' } }
+      );
+      const sent = JSON.parse(calls[0].options.body);
+      assert.equal(sent.id, 'ev-relay-4');
+      assert.ok(sent.client.os.length > 0);
+    }
+  );
+});
+
 test('send: relay для non-actionable события не запускает опрос решения', async () => {
   await withFetch(
     () => okResponse({ ok: true }),

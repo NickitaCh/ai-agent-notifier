@@ -59,10 +59,40 @@ function unregisterNativeHost(hostName, browser = 'chrome') {
   }
 }
 
+// os.release() на macOS отдаёт версию ядра Darwin ("24.5.0"), а не версию
+// macOS — как "ОС юзера" это нечитаемо. Соответствие задано таблицей, а не
+// формулой (Darwin major - 9), потому что формула ломается дважды: на 10.15
+// снизу и на прыжке нумерации macOS 15 -> 26 сверху.
+// Альтернатива — спавнить `sw_vers`, но это лишний процесс на каждое
+// событие ради строчки, которая и так известна из таблицы.
+const MACOS_BY_DARWIN_MAJOR = {
+  19: '10.15',
+  20: '11',
+  21: '12',
+  22: '13',
+  23: '14',
+  24: '15',
+  25: '26',
+};
+
+function parseMacosVersion(darwinRelease) {
+  const major = Number(String(darwinRelease).split('.')[0]);
+  // Неизвестный major — это версия новее таблицы. Возвращаем сырой Darwin,
+  // а не гадаем: "darwin-27" в отчёте честно читается как "пора обновить
+  // таблицу", а неверно угаданное "17" молча испортило бы статистику.
+  return MACOS_BY_DARWIN_MAJOR[major] || `darwin-${Number.isFinite(major) ? major : 'unknown'}`;
+}
+
+function osInfo() {
+  return { os: 'macos', osVersion: parseMacosVersion(os.release()) };
+}
+
 module.exports = {
   configDir,
   nativeHostManifestDir,
   registerNativeHost,
   unregisterNativeHost,
   supportedBrowsers,
+  osInfo,
+  parseMacosVersion,
 };

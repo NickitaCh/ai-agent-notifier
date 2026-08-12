@@ -50,10 +50,39 @@ function unregisterNativeHost(hostName, browser = 'chrome') {
   }
 }
 
+// На Linux os.release() — это версия ядра ("5.15.0-79-generic"), которая
+// про дистрибутив не говорит ничего. Дистрибутив берём из /etc/os-release
+// (freedesktop-стандарт, есть во всех живых дистрибутивах): ID + VERSION_ID.
+function parseOsRelease(text) {
+  const fields = {};
+  for (const line of String(text).split('\n')) {
+    const match = /^([A-Z_]+)=(.*)$/.exec(line.trim());
+    if (!match) continue;
+    // Значения бывают и в кавычках, и без ('VERSION_ID="22.04"' vs 'ID=arch').
+    fields[match[1]] = match[2].replace(/^["']|["']$/g, '');
+  }
+  if (!fields.ID) return null;
+  // У rolling-релизов (arch, gentoo) VERSION_ID нет вовсе — это не ошибка.
+  return fields.VERSION_ID ? `${fields.ID}/${fields.VERSION_ID}` : fields.ID;
+}
+
+function osInfo() {
+  let osVersion = 'unknown';
+  try {
+    osVersion = parseOsRelease(fs.readFileSync('/etc/os-release', 'utf8')) || 'unknown';
+  } catch {
+    // Файла может не быть в экзотическом окружении (некоторые контейнеры) —
+    // это метрика, а не функциональность, молча деградируем до "unknown".
+  }
+  return { os: 'linux', osVersion };
+}
+
 module.exports = {
   configDir,
   nativeHostManifestDir,
   registerNativeHost,
   unregisterNativeHost,
   supportedBrowsers,
+  osInfo,
+  parseOsRelease,
 };

@@ -21,6 +21,7 @@
     "pushoverUserKey": "",
     "telegramBotToken": "",
     "telegramChatId": "",
-    "relayToken": ""
+    "relayToken": "",
+    "relayMetrics": true
   }
 }
