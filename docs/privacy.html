@@ -170,6 +170,7 @@
     margin-top: 1px;
     color: var(--good);
   }
+  ul.checks .glyph.info { color: var(--accent); }
   ul.checks b { font-weight: 600; }
   ul.checks span.detail { color: var(--muted); }
 
@@ -272,8 +273,8 @@
     <div class="mark"><span class="dot"></span>AI&nbsp;AGENT&nbsp;NOTIFIER</div>
     <div class="head-right">
       <div class="doc-meta">
-        <span class="i18n-en">Privacy Policy<br />Updated 2026-08-05</span>
-        <span class="i18n-ru">Политика конфиденциальности<br />Обновлено 05.08.2026</span>
+        <span class="i18n-en">Privacy Policy<br />Updated 2026-08-12</span>
+        <span class="i18n-ru">Политика конфиденциальности<br />Обновлено 12.08.2026</span>
       </div>
       <div class="lang-toggle" role="group" aria-label="Language">
         <button type="button" data-set-lang="en">EN</button>
@@ -283,21 +284,24 @@
   </header>
 
   <div class="i18n-en">
-    <h1>Nothing leaves your computer.</h1>
+    <h1>Nothing leaves your computer until you switch it on.</h1>
     <p class="subtitle">
-      This policy is short because the product is simple: a local extension
-      talking to a local process, with no server on the other end.
+      By default this is a local extension talking to a local process, with
+      no server on the other end. One optional feature &mdash; phone
+      notifications &mdash; changes that, and most of this page describes
+      exactly how.
     </p>
 
     <p class="lede">
-      <strong>AI Agent Notifier does not collect, store, transmit, or sell
-      any user data.</strong> There is no backend, no analytics, and no
-      network communication of any kind beyond messages your own computer
-      sends to itself.
+      <strong>With its default settings, AI Agent Notifier collects,
+      stores, and transmits nothing.</strong> Turning on the phone channel
+      necessarily sends notification content off your machine, because that
+      is what the feature does. What is sent, to whom, and what is kept is
+      spelled out below.
     </p>
 
     <section>
-      <h2>What the extension does</h2>
+      <h2>What the software does</h2>
       <p>
         AI Agent Notifier pairs a Chrome extension with a small companion
         program (the &ldquo;host&rdquo;) that you install and run on your
@@ -309,7 +313,7 @@
     </section>
 
     <section>
-      <h2>Where the data actually goes</h2>
+      <h2>Default: everything stays local</h2>
       <div class="flow">
         <div class="node you">Coding agent</div>
         <div class="arrow"></div>
@@ -319,20 +323,16 @@
       </div>
       <p class="flow-caption">
         All three run on <code>127.0.0.1</code> &mdash; your machine.
-        <span class="flow-blocked">✕ no step leaves the device</span>
+        <span class="flow-blocked">&#x2715; no step leaves the device</span>
       </p>
-    </section>
-
-    <section>
-      <h2>Specifically</h2>
       <ul class="checks">
         <li>
           <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span><b>Minimal permissions.</b> <span class="detail">Only <code>nativeMessaging</code>, <code>notifications</code>, and <code>alarms</code> &mdash; no <code>tabs</code>, <code>scripting</code>, or <code>host_permissions</code>, so the extension cannot read page content or browsing history.</span></span>
+          <span><b>Minimal permissions.</b> <span class="detail">Only <code>nativeMessaging</code>, <code>notifications</code>, <code>alarms</code>, and <code>storage</code> &mdash; no <code>tabs</code>, <code>scripting</code>, or <code>host_permissions</code>, so the extension cannot read page content or browsing history.</span></span>
         </li>
         <li>
           <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span><b>No outbound network code.</b> <span class="detail">The extension's source contains no <code>fetch</code>, <code>XMLHttpRequest</code>, or any other call that reaches the internet.</span></span>
+          <span><b>No outbound network code in the extension.</b> <span class="detail">Its source contains no <code>fetch</code>, <code>XMLHttpRequest</code>, or any other call that reaches the internet. Any network access the product makes is made by the host process, never by the extension.</span></span>
         </li>
         <li>
           <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -344,30 +344,131 @@
         </li>
         <li>
           <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span><b>Diagnostics are opt-in, every time.</b> <span class="detail">The popup's &ldquo;Copy diagnostics&rdquo; button copies a local log excerpt to your clipboard on click, for you to paste wherever you choose. Nothing uploads automatically.</span></span>
-        </li>
-        <li>
-          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span><b>No accounts.</b> <span class="detail">No sign-in and no persistent identifier tied to you beyond the random local auth token above.</span></span>
         </li>
       </ul>
     </section>
 
     <section>
+      <h2>The optional phone channel</h2>
+      <p>
+        Off by default. You pick a provider in the extension popup, and
+        nothing is sent until you do. Whichever you pick, the message that
+        leaves your machine contains a title saying an agent wants
+        permission / asked a question / finished, the project folder name or
+        the session label you assigned, and the event&rsquo;s short summary
+        (typically a tool name and a one-line description of the action). It
+        does not contain file contents, full command output, or credentials.
+      </p>
+      <ul class="checks">
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>ntfy, Webhook (Discord/Slack), Pushover, or your own Telegram bot.</b> <span class="detail">The message goes straight from your machine to the service you configured, using the URL or token you entered. Nothing passes through any server operated by this project. Those services&rsquo; own privacy policies apply.</span></span>
+        </li>
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>Telegram shared bot.</b> <span class="detail">Saves you from creating a bot of your own; the cost is that a relay server run by this project sits in the middle. Described in full below.</span></span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>The shared-bot relay (<code>ai-agent-notify.ru</code>)</h2>
+      <div class="flow">
+        <div class="node you">host process</div>
+        <div class="arrow"></div>
+        <div class="node">relay</div>
+        <div class="arrow"></div>
+        <div class="node">Telegram</div>
+        <div class="arrow"></div>
+        <div class="node you">your phone</div>
+      </div>
+      <p class="flow-caption">
+        A small Node.js service; its full source is in the <code>relay/</code>
+        directory of the repository.
+      </p>
+      <ul class="checks">
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>Pairing stores three things.</b> <span class="detail">Your Telegram chat id, a random token generated for your installation, and the pairing timestamp. Your phone number, name, and contacts are never received.</span></span>
+        </li>
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>Notification text is not stored on the server.</b> <span class="detail">Each notification is received, forwarded to Telegram, and discarded &mdash; held in memory for the duration of the request only. Your Allow/Deny answer travels back the same way. The message itself of course remains in your Telegram chat, under Telegram&rsquo;s own policy.</span></span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Usage statistics &mdash; and how to turn them off</h2>
+      <p>
+        The relay records statistics, used to decide what to build next and
+        what limits are realistic. They can be switched off with the
+        &laquo;Помогать статистикой&raquo; checkbox next to the shared-bot
+        setting; notifications keep working either way. While on, each event
+        records:
+      </p>
+      <ul class="checks">
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>What kind of event it was.</b> <span class="detail">Permission request or task finished, which agent it came from, and the tool name (<code>Edit</code>, <code>Bash</code>, &hellip;).</span></span>
+        </li>
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>Your environment.</b> <span class="detail">Operating system and version, CPU architecture, host program version, and whether you installed the standalone executable or run it via Node.js.</span></span>
+        </li>
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>Timestamps, counts, and outcomes.</b> <span class="detail">For permission requests: allow / deny / no answer, and how long the answer took.</span></span>
+        </li>
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>A <code>uid</code>.</b> <span class="detail">A truncated salted SHA-256 hash of your installation token, so that one installation can be told apart from another. It cannot be reversed into your token, and the salt is unique to the server.</span></span>
+        </li>
+      </ul>
+      <p>
+        <strong>Never recorded, with the checkbox on or off:</strong> the
+        event summary, the working-directory path, command text, file
+        contents, your Telegram chat id in the statistics log, or your IP
+        address. Statistics files are kept for six months, then deleted
+        automatically.
+      </p>
+    </section>
+
+    <section>
+      <h2>Feedback, diagnostics, and issue reports</h2>
+      <p>
+        Sending <code>/feedback &lt;text&gt;</code> to the shared bot stores
+        your message text, chat id, and Telegram username if you have one,
+        so a reply can reach you &mdash; only for messages you deliberately
+        send as feedback, and kept until the issue is resolved.
+      </p>
+      <p>
+        The popup&rsquo;s &ldquo;Copy diagnostics&rdquo; button copies a
+        local log excerpt to your clipboard on your click. &ldquo;Report a
+        problem&rdquo; additionally opens a pre-filled GitHub issue form in
+        a new tab; nothing is submitted until you press GitHub&rsquo;s own
+        submit button, and you decide what to paste in. Nothing uploads
+        automatically.
+      </p>
+    </section>
+
+    <section>
       <h2>Third parties</h2>
       <p>
-        None. No analytics SDKs, crash reporters, ad networks, or other
-        third-party services are integrated into the extension or the host.
+        No analytics SDKs, crash reporters, or ad networks are integrated
+        into the extension or the host. If you enable a phone provider, that
+        provider &mdash; ntfy, Discord, Slack, Pushover, or Telegram &mdash;
+        receives your notifications and applies its own privacy policy.
+        Nothing is sold, and nothing is shared with anyone else.
       </p>
     </section>
 
     <section>
       <h2>Changes to this policy</h2>
       <p>
-        If this ever changes &mdash; for example, an optional future
-        notification channel that requires a network call &mdash; this
-        document will be updated first, the change described in the
-        project&rsquo;s README, and the revision history kept visible in
+        Material changes are made in this document first, described in the
+        project&rsquo;s README, with the revision history kept visible in
         the GitHub repository.
       </p>
     </section>
@@ -377,29 +478,31 @@
       <p>
         This is an independent, open-source project. Questions or concerns
         can be raised via
-        <a href="https://github.com/NickitaCh/ai-agent-notifier/issues" target="_blank" rel="noopener">GitHub Issues</a>
-        on the project repository.
+        <a href="https://github.com/NickitaCh/ai-agent-notifier/issues" target="_blank" rel="noopener">GitHub Issues</a>,
+        or by sending <code>/feedback</code> to the shared bot.
       </p>
     </section>
   </div>
 
   <div class="i18n-ru">
-    <h1>С вашего компьютера ничего не уходит.</h1>
+    <h1>С вашего компьютера ничего не уходит, пока вы сами это не включите.</h1>
     <p class="subtitle">
-      Эта политика короткая, потому что продукт простой: локальное
-      расширение общается с локальным процессом, и на другом конце нет
-      никакого сервера.
+      По умолчанию это локальное расширение, которое общается с локальным
+      процессом, и на другом конце нет никакого сервера. Одна опциональная
+      возможность &mdash; уведомления на телефон &mdash; это меняет, и
+      большая часть этой страницы описывает, как именно.
     </p>
 
     <p class="lede">
-      <strong>AI Agent Notifier не собирает, не хранит, не передаёт и не
-      продаёт никакие пользовательские данные.</strong> У расширения нет
-      бэкенда, нет аналитики и нет никакой сетевой активности, кроме
-      сообщений, которые ваш компьютер отправляет сам себе.
+      <strong>В настройках по умолчанию AI Agent Notifier ничего не
+      собирает, не хранит и не передаёт.</strong> Включение канала
+      &laquo;телефон&raquo; неизбежно отправляет содержимое уведомлений за
+      пределы вашей машины &mdash; в этом и состоит смысл функции. Что
+      именно отправляется, кому и что остаётся храниться, расписано ниже.
     </p>
 
     <section>
-      <h2>Что делает расширение</h2>
+      <h2>Что делает программа</h2>
       <p>
         AI Agent Notifier связывает расширение Chrome с небольшой
         программой-компаньоном (&laquo;хостом&raquo;), которую вы сами
@@ -412,7 +515,7 @@
     </section>
 
     <section>
-      <h2>Куда реально уходят данные</h2>
+      <h2>По умолчанию всё остаётся локальным</h2>
       <div class="flow">
         <div class="node you">ИИ-агент</div>
         <div class="arrow"></div>
@@ -422,20 +525,16 @@
       </div>
       <p class="flow-caption">
         Все три части работают на <code>127.0.0.1</code> &mdash; вашей машине.
-        <span class="flow-blocked">✕ ни один шаг не покидает устройство</span>
+        <span class="flow-blocked">&#x2715; ни один шаг не покидает устройство</span>
       </p>
-    </section>
-
-    <section>
-      <h2>Конкретно</h2>
       <ul class="checks">
         <li>
           <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span><b>Минимум разрешений.</b> <span class="detail">Только <code>nativeMessaging</code>, <code>notifications</code> и <code>alarms</code> &mdash; без <code>tabs</code>, <code>scripting</code> или <code>host_permissions</code>, поэтому расширение не может читать содержимое страниц или историю браузера.</span></span>
+          <span><b>Минимум разрешений.</b> <span class="detail">Только <code>nativeMessaging</code>, <code>notifications</code>, <code>alarms</code> и <code>storage</code> &mdash; без <code>tabs</code>, <code>scripting</code> или <code>host_permissions</code>, поэтому расширение не может читать содержимое страниц или историю браузера.</span></span>
         </li>
         <li>
           <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span><b>Никакого исходящего сетевого кода.</b> <span class="detail">В исходном коде расширения нет ни <code>fetch</code>, ни <code>XMLHttpRequest</code>, ни любого другого вызова, который выходит в интернет.</span></span>
+          <span><b>В расширении нет исходящего сетевого кода.</b> <span class="detail">В его исходниках нет ни <code>fetch</code>, ни <code>XMLHttpRequest</code>, ни любого другого вызова в интернет. Всю сетевую работу, если она есть, делает процесс-хост, а не расширение.</span></span>
         </li>
         <li>
           <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -447,32 +546,133 @@
         </li>
         <li>
           <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span><b>Диагностика &mdash; только по вашему клику.</b> <span class="detail">Кнопка &laquo;Скопировать диагностику&raquo; в popup копирует выдержку из локального лога в буфер обмена по вашему нажатию, чтобы вы сами вставили её куда захотите. Автоматической отправки нет.</span></span>
-        </li>
-        <li>
-          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span><b>Без аккаунтов.</b> <span class="detail">Нет входа и нет постоянного идентификатора, привязанного к вам, кроме случайного локального токена авторизации, описанного выше.</span></span>
         </li>
       </ul>
     </section>
 
     <section>
+      <h2>Опциональный канал &laquo;телефон&raquo;</h2>
+      <p>
+        По умолчанию выключен. Провайдера вы выбираете в попапе расширения,
+        и до этого момента не отправляется ничего. Какого бы вы ни выбрали,
+        уходящее с машины сообщение содержит заголовок (агент просит
+        разрешение / задал вопрос / закончил), имя папки проекта или
+        заданное вами название сессии и короткую сводку события &mdash;
+        обычно имя инструмента и одну строку с описанием действия.
+        Содержимого файлов, полного вывода команд и учётных данных в нём нет.
+      </p>
+      <ul class="checks">
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>ntfy, Webhook (Discord/Slack), Pushover или свой бот Telegram.</b> <span class="detail">Сообщение уходит напрямую с вашей машины в тот сервис, который вы настроили, по указанному вами URL или токену. Через серверы этого проекта не проходит ничего. Действуют политики конфиденциальности самих сервисов.</span></span>
+        </li>
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>Общий бот Telegram.</b> <span class="detail">Избавляет от необходимости заводить своего бота; плата за это &mdash; посередине оказывается relay-сервер, который держит автор проекта. Подробно &mdash; ниже.</span></span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Relay общего бота (<code>ai-agent-notify.ru</code>)</h2>
+      <div class="flow">
+        <div class="node you">процесс-хост</div>
+        <div class="arrow"></div>
+        <div class="node">relay</div>
+        <div class="arrow"></div>
+        <div class="node">Telegram</div>
+        <div class="arrow"></div>
+        <div class="node you">ваш телефон</div>
+      </div>
+      <p class="flow-caption">
+        Небольшой сервис на Node.js; его исходники целиком лежат в папке
+        <code>relay/</code> репозитория.
+      </p>
+      <ul class="checks">
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>Привязка сохраняет три вещи.</b> <span class="detail">Ваш chat id в Telegram, случайный токен, сгенерированный для вашей установки, и время привязки. Номер телефона, имя и контакты сервер не получает вообще.</span></span>
+        </li>
+        <li>
+          <svg class="glyph" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><b>Текст уведомлений на сервере не хранится.</b> <span class="detail">Каждое уведомление принимается, пересылается в Telegram и выбрасывается &mdash; оно живёт в памяти только на время запроса. Ваш ответ Разрешить/Отклонить возвращается тем же путём. Само сообщение, разумеется, остаётся в вашем чате Telegram по политике самого Telegram.</span></span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Статистика использования &mdash; и как её выключить</h2>
+      <p>
+        Relay записывает статистику: по ней принимаются решения, что делать
+        дальше и какие ограничения реалистичны. Её можно выключить флажком
+        &laquo;Помогать статистикой&raquo; рядом с настройкой общего бота
+        &mdash; уведомления работают в любом случае. Пока она включена, по
+        каждому событию записывается:
+      </p>
+      <ul class="checks">
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>Тип события.</b> <span class="detail">Запрос разрешения или завершение задачи, от какого агента пришло и имя инструмента (<code>Edit</code>, <code>Bash</code>, &hellip;).</span></span>
+        </li>
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>Ваше окружение.</b> <span class="detail">Операционная система и её версия, архитектура процессора, версия программы-хоста и то, поставили ли вы автономный exe или запускаете через Node.js.</span></span>
+        </li>
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b>Время, счётчики и исходы.</b> <span class="detail">Для запросов разрешения &mdash; разрешено / отклонено / без ответа и сколько времени занял ответ.</span></span>
+        </li>
+        <li>
+          <svg class="glyph info" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span><b><code>uid</code>.</b> <span class="detail">Укороченный SHA-256-хеш вашего токена с солью &mdash; чтобы отличать одну установку от другой. Обратно в токен не превращается, а соль уникальна для сервера.</span></span>
+        </li>
+      </ul>
+      <p>
+        <strong>Не записывается никогда, независимо от флажка:</strong>
+        сводка события, путь к рабочей директории, текст команд, содержимое
+        файлов, ваш chat id в логе статистики и ваш IP-адрес. Файлы
+        статистики хранятся шесть месяцев и затем удаляются автоматически.
+      </p>
+    </section>
+
+    <section>
+      <h2>Обратная связь, диагностика и баг-репорты</h2>
+      <p>
+        Команда <code>/feedback &lt;текст&gt;</code> в общем боте сохраняет
+        текст вашего сообщения, chat id и имя пользователя Telegram, если
+        оно у вас есть, &mdash; чтобы можно было вам ответить. Только для
+        сообщений, которые вы намеренно отправили как обратную связь;
+        хранится до решения вопроса.
+      </p>
+      <p>
+        Кнопка &laquo;Скопировать диагностику&raquo; в попапе копирует
+        выдержку из локального лога в буфер обмена по вашему нажатию.
+        &laquo;Сообщить о проблеме&raquo; дополнительно открывает в новой
+        вкладке предзаполненную форму issue на GitHub; ничего не
+        отправляется, пока вы не нажмёте кнопку отправки самого GitHub, и
+        что именно вставлять, решаете вы. Автоматической отправки нет.
+      </p>
+    </section>
+
+    <section>
       <h2>Третьи стороны</h2>
       <p>
-        Их нет. В расширение и хост не встроены ни SDK аналитики, ни
-        сборщики крашей, ни рекламные сети, ни какие-либо другие сторонние
-        сервисы.
+        В расширение и хост не встроены ни SDK аналитики, ни сборщики
+        крашей, ни рекламные сети. Если вы включили провайдера для телефона,
+        этот провайдер &mdash; ntfy, Discord, Slack, Pushover или Telegram
+        &mdash; получает ваши уведомления и применяет свою политику
+        конфиденциальности. Ничего не продаётся и никому больше не
+        передаётся.
       </p>
     </section>
 
     <section>
       <h2>Изменения политики</h2>
       <p>
-        Если это когда-нибудь изменится &mdash; например, появится
-        опциональный канал уведомлений, требующий сетевого вызова &mdash;
-        этот документ будет обновлён в первую очередь, изменение будет
-        описано в README проекта, а история версий останется видна в
-        репозитории на GitHub.
+        Существенные изменения сначала вносятся в этот документ, описываются
+        в README проекта, а история версий остаётся видна в репозитории на
+        GitHub.
       </p>
     </section>
 
@@ -482,7 +682,7 @@
         Это независимый open-source проект. Вопросы и замечания можно
         оставить через
         <a href="https://github.com/NickitaCh/ai-agent-notifier/issues" target="_blank" rel="noopener">GitHub Issues</a>
-        в репозитории проекта.
+        или отправив <code>/feedback</code> общему боту.
       </p>
     </section>
   </div>

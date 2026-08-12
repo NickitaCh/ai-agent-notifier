@@ -33,6 +33,19 @@ npm run build:mac           # (untested — no macOS available to the author)
 npm run build:linux         # (untested — no Linux available to the author)
 ```
 
+The relay is a separate project with its own commands (run from `relay/`):
+
+```
+npm test                    # node:test — runs test/*.test.js
+npm start                   # node src/server.js (needs BOT_TOKEN + WEBHOOK_SECRET)
+npm run report              # bin/report.js — usage summary from the metrics files
+node tools/seed-report-data.js <dir>   # synthetic data to eyeball the report
+```
+
+`node --test` treats **every** file under `test/` as a test file, not just
+`*.test.js`. That is why the seed generator lives in `tools/` — inside
+`test/` it ran on every `npm test` and failed as a broken test.
+
 There is no linter configured anywhere in the repo (no eslint config, no
 `.cursor/rules`, no `.github/copilot-instructions.md`) — don't invent lint
 commands.
@@ -85,8 +98,9 @@ files there run directly in the MV3 service worker / popup.
 - `host/src/channels/phone-channel.js` — sends to a per-user-configured
   provider (`settings.phone.provider`): `ntfy`, `webhook` (Discord/Slack,
   same body carries both `content` and `text` since each service ignores the
-  field it doesn't recognize), `pushover`, or `telegram` (own bot token +
-  chat id, sends inline Allow/Deny buttons for actionable events). Same
+  field it doesn't recognize), `pushover`, `telegram` (own bot token +
+  chat id, sends inline Allow/Deny buttons for actionable events), or
+  `relay` (the shared bot — see `relay/` below). Same
   `send(event, settings)` interface as the other channels, so `router.js`
   doesn't know or care which provider is active. Errors are NOT swallowed
   here — they propagate up through `router.js`'s existing per-channel
@@ -106,11 +120,27 @@ files there run directly in the MV3 service worker / popup.
   `daemon.log` — this is the documented way to discover `telegramChatId`
   for settings, since the daemon is already polling `getUpdates` itself and
   would otherwise silently consume the update before a manual browser check
-  of the API could see it. There is no pairing/`/start` flow at
-  this stage — the user pastes their own bot token and chat id into
-  settings; a shared bot with one-click pairing would need a relay server
-  (Telegram allows only one `getUpdates` listener per bot token) and is not
-  implemented.
+  of the API could see it. This provider has no pairing flow — the user
+  pastes their own bot token and chat id into settings. One-click pairing
+  exists only for the shared bot, which needs a server because Telegram
+  allows a single `getUpdates` listener per bot token; see `relay/`.
+- `relay/` — a standalone service (its own `package.json`, deployed
+  separately to a VPS, *not* part of the host build) backing
+  `provider: 'relay'`, the shared Telegram bot. Plain `node:http`, no
+  framework, no dependencies. Endpoints: `/pair/start`, `/pair/status`,
+  `/telegram/webhook`, `POST /events` (fast ack) and
+  `GET /events/:id/decision` (long-poll). The split between the last two is
+  load-bearing, not stylistic: `router.js` dispatches channels sequentially
+  with `await`, so a `send()` that blocked until the user tapped a button
+  would stall the badge and notification channels behind it for minutes.
+  State lives in flat JSON/ndjson files next to the process (`store.js`,
+  `metrics.js`) — at this scale a database buys nothing and costs a moving
+  part on a box shared with unrelated services.
+- `host/src/client-info.js` — the OS/arch/host-version snapshot attached to
+  each event sent through the relay, assembled from `platform.osInfo()`.
+  The extension never reports this and must not start: it has no network
+  code at all, and the host is the only component that reliably knows the
+  OS. Gated by `settings.phone.relayMetrics` (default on).
 - `host/src/native-bridge.js` — the actual registered Chrome native-messaging
   host executable. Chrome spawns it via stdio when the extension calls
   `connectNative()`. It is a dumb, stateless translator between Chrome's
@@ -349,6 +379,36 @@ permission-mode or rule-matching pre-filter back, don't — trust
 `PermissionRequest` completely. `permissionExcludeTools` remains the one
 sanctioned suppression path, and it's opt-in and explicit rather than
 inferred.
+
+### What the relay's metrics may and may not record
+
+`relay/src/metrics.js` writes two things: a rollup inside each user's record
+in `users.json` (for online use — tier limits will read it) and an
+append-only `metrics-YYYY-MM.ndjson` (for analysis after the fact, since the
+questions worth asking aren't all known yet). `bin/report.js` reads both.
+
+The boundary is not a style preference and is repeated verbatim in
+`PRIVACY.md`, in the Chrome Web Store privacy answers, and in the popup
+copy, so changing it means changing all four:
+
+- **Never recorded:** the event `summary`, `cwd` (a path into the user's
+  filesystem), command text, file contents, `chatId` in the metrics log, or
+  IP addresses. Notification text passes through the relay in memory and is
+  never written to its disk.
+- **Recorded:** event type, agent, tool name, OS/arch/host version,
+  timestamps, counters, decision outcomes and latency, and `uid` — a
+  truncated salted SHA-256 of the user's token, so installations can be told
+  apart without being identifiable. The salt is per-server, so uids from two
+  deployments can't be joined.
+- Metrics must never break delivery. Every write goes through `safely()`,
+  which logs and swallows: a full disk costs a statistics line, not a
+  missed permission request. A missing file is not an error — `loadCounters`
+  and `listLogFiles` treat `ENOENT` as empty rather than logging, because
+  otherwise every fresh deploy screams on its first event.
+- `feedback.js` is the deliberate exception: it *does* store `chatId` and
+  username, because a support message you can't reply to is useless. It
+  throws instead of swallowing, so the user can be told the message didn't
+  save.
 
 ### Test coverage boundaries
 
