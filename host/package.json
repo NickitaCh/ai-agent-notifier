@@ -1,6 +1,6 @@
 {
   "name": "ai-agent-notifier-host",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Native host / демон для уведомлений от хуков AI-агентов (Claude Code, Cursor, GitHub Copilot CLI, OpenAI Codex CLI) в Chrome",
   "main": "src/daemon.js",
