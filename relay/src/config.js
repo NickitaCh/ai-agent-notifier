@@ -37,4 +37,13 @@ module.exports = {
     windowMs: Number(process.env.PAIR_START_WINDOW_MS || 600000),
     max: Number(process.env.PAIR_START_MAX || 10),
   },
+  // Куда пересылать /feedback. Необязательный: если не задан, обращения
+  // всё равно пишутся в feedback.ndjson, просто не прилетают в личку.
+  adminChatId: process.env.ADMIN_CHAT_ID || '',
+  // Лимит на /feedback — по chat.id, а не по IP: у вебхука IP всегда
+  // телеграмовский, различать юзеров по нему невозможно.
+  feedbackRateLimit: {
+    windowMs: Number(process.env.FEEDBACK_WINDOW_MS || 3600000),
+    max: Number(process.env.FEEDBACK_MAX || 5),
+  },
 };

@@ -180,6 +180,10 @@ function renderPhoneSettings(phone = {}) {
     }
   }
 
+  // Дефолт — включено, поэтому проверяем именно на !== false: у юзера,
+  // настроившего relay до появления тумблера, поля в settings нет вовсе.
+  document.getElementById('phoneRelayMetrics').checked = phone.relayMetrics !== false;
+
   if (phone.relayToken) {
     relayPairStatus.textContent = 'Привязано ✓';
     relayPairBtn.textContent = 'Привязать заново';
@@ -259,6 +263,13 @@ for (const fields of Object.values(PHONE_FIELDS_BY_PROVIDER)) {
     });
   }
 }
+
+// Не в PHONE_FIELDS_BY_PROVIDER: там текстовые поля со .value, а тут флажок
+// с .checked — общий цикл выше пришлось бы разветвлять по типу инпута ради
+// одного элемента.
+document.getElementById('phoneRelayMetrics').addEventListener('change', (e) => {
+  patchSettings({ phone: { relayMetrics: e.target.checked } });
+});
 
 phoneTestBtn.addEventListener('click', async () => {
   phoneTestBtn.disabled = true;
@@ -399,9 +410,7 @@ checkAgainBtn.addEventListener('click', async () => {
   if (res?.connected) loadSettings();
 });
 
-document.getElementById('reportIssue').addEventListener('click', async () => {
-  const btn = document.getElementById('reportIssue');
-  const originalText = btn.textContent;
+async function buildDiagnostics() {
   const [status, diag] = await Promise.all([
     sendMessage({ type: 'get_status' }),
     sendMessage({ type: 'get_diagnostics' }),
@@ -421,6 +430,14 @@ document.getElementById('reportIssue').addEventListener('click', async () => {
     diag?.logTail || '(недоступно)',
   ].join('\n');
 
+  return { report, connected: !!status?.connected };
+}
+
+document.getElementById('reportIssue').addEventListener('click', async () => {
+  const btn = document.getElementById('reportIssue');
+  const originalText = btn.textContent;
+  const { report } = await buildDiagnostics();
+
   try {
     await navigator.clipboard.writeText(report);
     btn.textContent = 'Скопировано ✓';
@@ -428,6 +445,51 @@ document.getElementById('reportIssue').addEventListener('click', async () => {
     btn.textContent = 'Не удалось скопировать';
   }
   setTimeout(() => (btn.textContent = originalText), 2000);
+});
+
+const ISSUE_URL = 'https://github.com/NickitaCh/ai-agent-notifier/issues/new';
+
+// Хвост daemon.log в URL не влезает (у гитхаба практический потолок в
+// несколько килобайт на query string, а лог легко больше), поэтому короткую
+// часть кладём в тело issue, а полную диагностику — в буфер обмена, и просим
+// вставить. Один клик вместо "сначала нажмите одну кнопку, потом другую".
+function buildIssueBody({ connected }) {
+  return [
+    '<!-- Опишите, что произошло и что вы ожидали увидеть -->',
+    '',
+    '',
+    '### Окружение',
+    `- Версия расширения: ${chrome.runtime.getManifest().version}`,
+    `- Платформа: ${navigator.userAgent}`,
+    `- Связь с компаньоном: ${connected ? 'есть' : 'нет'}`,
+    '',
+    '### Диагностика',
+    '<!-- Полная диагностика уже скопирована в буфер обмена — вставьте её сюда (Ctrl+V) -->',
+    '',
+  ].join('\n');
+}
+
+document.getElementById('sendFeedback').addEventListener('click', async () => {
+  const hint = document.getElementById('feedbackHint');
+  hint.textContent = 'готовлю…';
+  const { report, connected } = await buildDiagnostics();
+
+  // Порядок важен: clipboard.writeText обязан завершиться ДО tabs.create.
+  // Новая активная вкладка забирает фокус, попап тут же закрывается, и всё
+  // незавершённое в этом контексте просто перестаёт существовать (та же
+  // грабля, что была в пейринге — см. комментарий у relayPairBtn).
+  let copied = true;
+  try {
+    await navigator.clipboard.writeText(report);
+  } catch {
+    copied = false;
+  }
+
+  const url = `${ISSUE_URL}?template=bug_report.md&body=${encodeURIComponent(buildIssueBody({ connected }))}`;
+  hint.textContent = copied
+    ? 'диагностика в буфере — вставьте её в issue'
+    : 'не удалось скопировать диагностику, опишите проблему словами';
+  chrome.tabs.create({ url });
 });
 
 refreshStatus().then(loadSettings).then(pollPairingWhileOpen);

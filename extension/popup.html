@@ -266,6 +266,12 @@
       }
       .phone-fields input[type="text"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
       .phone-hint { font-size: 11px; color: var(--muted); margin: -3px 0 8px; }
+      .phone-hint a { color: var(--accent); }
+      .metrics-row {
+        display: flex; align-items: flex-start; gap: 8px;
+        font-size: 11.5px; color: var(--muted); margin: 8px 0 4px; cursor: pointer;
+      }
+      .metrics-row input { margin: 1px 0 0; flex: none; }
 
       .save-hint {
         font-size: 10.5px;
@@ -439,6 +445,14 @@
       <div id="phoneFieldsRelay" class="phone-fields">
         <button type="button" id="relayPairBtn" class="ghost">Привязать через бота</button>
         <div id="relayPairStatus" class="phone-hint"></div>
+        <label class="metrics-row">
+          <input type="checkbox" id="phoneRelayMetrics" />
+          <span>Помогать статистикой: ОС, версия программы, счётчики событий</span>
+        </label>
+        <div class="phone-hint">
+          Без содержимого запросов, путей к проектам и текста команд.
+          <a href="https://github.com/NickitaCh/ai-agent-notifier/blob/master/PRIVACY.md" target="_blank" rel="noopener">Что именно собирается</a>.
+        </div>
       </div>
 
       <button id="phoneTest" class="ghost" type="button">Отправить тестовое уведомление</button>
@@ -459,6 +473,10 @@
       <div class="report-row">
         <button id="reportIssue" class="ghost" type="button">Скопировать диагностику</button>
       </div>
+      <div class="report-row">
+        <button id="sendFeedback" class="ghost" type="button">Сообщить о проблеме / пожелании</button>
+      </div>
+      <div id="feedbackHint" class="save-hint"></div>
     </section>
 
     <section class="settings-ui">
