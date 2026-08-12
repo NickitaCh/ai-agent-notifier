@@ -1,5 +1,3 @@
-'use strict';
-
 // Локализация расширения. Работает и в popup/welcome (через <script>), и в
 // service worker'е (через importScripts) — поэтому вешается на self, а не
 // на window, и грузит каталоги через fetch(chrome.runtime.getURL(...)),
@@ -12,6 +10,18 @@
 // браузера. Общий источник истины — settings.locale в демоне; chrome.i18n
 // остался только для name/description в manifest (см. _locales/), потому
 // что карточку в Web Store иначе не локализовать.
+
+// Всё внутри IIFE намеренно: это классический <script>, не модуль, поэтому
+// без обёртки каждое верхнеуровневое имя (t, apply, format, detect...)
+// становится глобальным для всей страницы — и попап, подключающий i18n.js
+// первым тегом, а свой код вторым, ловит "Identifier 't' has already been
+// declared" на любом совпадении имени, даже безобидном. Ошибка эта —
+// синтаксическая, на этапе парсинга: весь popup.js целиком не выполняется,
+// ни одна строка, а симптом выглядит как "всё пустое" без единой видимой
+// причины в разметке. Единственное, что должно быть видно снаружи — сам
+// self.I18n, вот он единственный и остаётся.
+(function () {
+'use strict';
 
 const SUPPORTED = ['ru', 'en', 'es'];
 const FALLBACK = 'en';
@@ -101,3 +111,4 @@ function apply(root = document) {
 }
 
 self.I18n = { SUPPORTED, FALLBACK, detect, normalize, use, ready, t, apply, current: () => current };
+})();
