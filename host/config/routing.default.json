@@ -12,5 +12,15 @@
   "permissionExcludeTools": [],
   "permissionInfoOnlyTools": ["AskUserQuestion"],
   "snoozeByProject": {},
-  "sessionNames": {}
+  "sessionNames": {},
+  "phone": {
+    "provider": "none",
+    "ntfyTopicUrl": "",
+    "webhookUrl": "",
+    "pushoverToken": "",
+    "pushoverUserKey": "",
+    "telegramBotToken": "",
+    "telegramChatId": "",
+    "relayToken": ""
+  }
 }

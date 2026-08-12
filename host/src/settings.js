@@ -25,7 +25,16 @@ function load() {
   const defaults = JSON.parse(fs.readFileSync(DEFAULTS_PATH, 'utf8'));
   try {
     const custom = JSON.parse(fs.readFileSync(target, 'utf8'));
-    return { ...defaults, ...custom, rules: { ...defaults.rules, ...custom.rules } };
+    // Как и rules — phone мёржим на один уровень вглубь, а не заменяем
+    // целиком: иначе частично сохранённый custom.phone (например, только
+    // provider, без остальных полей) навсегда теряет дефолтные пустые поля
+    // остальных провайдеров вместо того, чтобы их просто игнорировать.
+    return {
+      ...defaults,
+      ...custom,
+      rules: { ...defaults.rules, ...custom.rules },
+      phone: { ...defaults.phone, ...custom.phone },
+    };
   } catch (err) {
     console.error(`[settings] не удалось прочитать ${target}, использую дефолты: ${err.message}`);
     return defaults;

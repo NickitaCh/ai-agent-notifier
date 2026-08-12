@@ -13,6 +13,33 @@ const snoozeActiveList = document.getElementById('snoozeActiveList');
 const permissionTimeoutInput = document.getElementById('permissionTimeoutSec');
 const stopDebounceInput = document.getElementById('stopDebounceSec');
 const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"][data-event]'));
+const phoneProviderButtons = Array.from(document.querySelectorAll('#phoneProviderRow button[data-provider]'));
+const phoneTestBtn = document.getElementById('phoneTest');
+const phoneTestHint = document.getElementById('phoneTestHint');
+const relayPairBtn = document.getElementById('relayPairBtn');
+const relayPairStatus = document.getElementById('relayPairStatus');
+
+// provider -> [[input id, ключ в settings.phone], ...] — источник и для
+// рендера полей, и для навешивания change-хендлеров ниже.
+const PHONE_FIELDS_BY_PROVIDER = {
+  ntfy: [['phoneNtfyTopicUrl', 'ntfyTopicUrl']],
+  webhook: [['phoneWebhookUrl', 'webhookUrl']],
+  pushover: [
+    ['phonePushoverToken', 'pushoverToken'],
+    ['phonePushoverUserKey', 'pushoverUserKey'],
+  ],
+  telegram: [
+    ['phoneTelegramBotToken', 'telegramBotToken'],
+    ['phoneTelegramChatId', 'telegramChatId'],
+  ],
+};
+const PHONE_CONTAINER_BY_PROVIDER = {
+  ntfy: 'phoneFieldsNtfy',
+  webhook: 'phoneFieldsWebhook',
+  pushover: 'phoneFieldsPushover',
+  telegram: 'phoneFieldsTelegram',
+  relay: 'phoneFieldsRelay',
+};
 
 // Дубль константы из background.js — контексты разные, общего модуля нет
 // (см. projectLabel ниже, та же причина).
@@ -138,6 +165,30 @@ function showSaveHint(text) {
   setTimeout(() => saveHint.classList.remove('show'), 2000);
 }
 
+function renderPhoneSettings(phone = {}) {
+  const provider = phone.provider || 'none';
+  for (const btn of phoneProviderButtons) {
+    btn.classList.toggle('active', btn.dataset.provider === provider);
+  }
+
+  for (const [providerName, containerId] of Object.entries(PHONE_CONTAINER_BY_PROVIDER)) {
+    document.getElementById(containerId).classList.toggle('show', providerName === provider);
+  }
+  for (const fields of Object.values(PHONE_FIELDS_BY_PROVIDER)) {
+    for (const [inputId, key] of fields) {
+      document.getElementById(inputId).value = phone[key] || '';
+    }
+  }
+
+  if (phone.relayToken) {
+    relayPairStatus.textContent = 'Привязано ✓';
+    relayPairBtn.textContent = 'Привязать заново';
+  } else {
+    relayPairStatus.textContent = '';
+    relayPairBtn.textContent = 'Привязать через бота';
+  }
+}
+
 function renderSettings(settings) {
   if (!settings) {
     showSaveHint('нет связи с host');
@@ -154,6 +205,7 @@ function renderSettings(settings) {
   stopDebounceInput.value = Math.round((settings.stopDebounceMs ?? 20000) / 1000);
 
   renderActiveSnoozes(settings.snoozeByProject);
+  renderPhoneSettings(settings.phone);
 
   currentSessionNames = settings.sessionNames || {};
   renderSessionsList();
@@ -192,6 +244,71 @@ permissionTimeoutInput.addEventListener('change', () => {
 stopDebounceInput.addEventListener('change', () => {
   const sec = Math.max(0, Number(stopDebounceInput.value) || 0);
   patchSettings({ stopDebounceMs: sec * 1000 });
+});
+
+for (const btn of phoneProviderButtons) {
+  btn.addEventListener('click', () => {
+    patchSettings({ phone: { provider: btn.dataset.provider } });
+  });
+}
+
+for (const fields of Object.values(PHONE_FIELDS_BY_PROVIDER)) {
+  for (const [inputId, key] of fields) {
+    document.getElementById(inputId).addEventListener('change', (e) => {
+      patchSettings({ phone: { [key]: e.target.value.trim() } });
+    });
+  }
+}
+
+phoneTestBtn.addEventListener('click', async () => {
+  phoneTestBtn.disabled = true;
+  phoneTestHint.textContent = 'отправляю…';
+  phoneTestHint.classList.remove('show');
+  const res = await sendMessage({ type: 'test_phone' });
+  phoneTestBtn.disabled = false;
+  phoneTestHint.textContent = res?.ok ? 'Отправлено ✓' : `Не удалось${res?.error ? `: ${res.error}` : ''}`;
+  if (res?.ok) phoneTestHint.classList.add('show');
+  setTimeout(() => phoneTestHint.classList.remove('show'), 4000);
+});
+
+// Ожидание подтверждения от Telegram живёт в background.js, не здесь: попап
+// закрывается сразу же, как только теряет фокус — что и происходит, когда
+// chrome.tabs.create ниже открывает вкладку Telegram. background переживает
+// закрытие попапа (service worker, не документ попапа) и сам допишет токен
+// в настройки, когда relay его выдаст; заодно покажет системное уведомление.
+//
+// Пока идёт привязка, кнопка здесь только отражает состояние background
+// (через get_pair_status) и заблокирована — раньше при повторном открытии
+// попапа кнопка снова выглядела как "Привязать через бота" (сам попап не
+// знал о фоновом ожидании), что провоцировало повторные клики и лишние
+// коды пейринга, пока первый ещё обрабатывался.
+let pairingPollTimer = null;
+
+async function pollPairingWhileOpen() {
+  clearTimeout(pairingPollTimer);
+  const res = await sendMessage({ type: 'get_pair_status' });
+  if (res?.pending) {
+    relayPairBtn.disabled = true;
+    relayPairBtn.textContent = 'Привязывается…';
+    relayPairStatus.textContent = 'ждём подтверждения в Telegram… (попап можно закрыть, придёт уведомление)';
+    pairingPollTimer = setTimeout(pollPairingWhileOpen, 1500);
+  } else {
+    relayPairBtn.disabled = false;
+    await loadSettings(); // подхватить итог: relayToken, если уже привязалось, либо исходный текст кнопки
+  }
+}
+
+relayPairBtn.addEventListener('click', async () => {
+  relayPairBtn.disabled = true;
+  relayPairStatus.textContent = 'открываю Telegram…';
+  const start = await sendMessage({ type: 'relay_pair_start' });
+  if (!start?.ok) {
+    relayPairBtn.disabled = false;
+    relayPairStatus.textContent = `Не удалось начать привязку${start?.error ? `: ${start.error}` : ''}`;
+    return;
+  }
+  chrome.tabs.create({ url: start.deepLink });
+  pollPairingWhileOpen();
 });
 
 for (const btn of document.querySelectorAll('button[data-snooze]')) {
@@ -313,4 +430,4 @@ document.getElementById('reportIssue').addEventListener('click', async () => {
   setTimeout(() => (btn.textContent = originalText), 2000);
 });
 
-refreshStatus().then(loadSettings);
+refreshStatus().then(loadSettings).then(pollPairingWhileOpen);

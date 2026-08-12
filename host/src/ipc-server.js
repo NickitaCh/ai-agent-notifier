@@ -7,6 +7,7 @@ const { createLineReader, writeLine } = require('./ndjson');
 const router = require('./router');
 const settingsStore = require('./settings');
 const extensionChannel = require('./channels/extension-channel');
+const phoneChannel = require('./channels/phone-channel');
 const stopDebounce = require('./stop-debounce');
 const auth = require('./auth');
 
@@ -79,13 +80,26 @@ async function handleMessage(socket, msg) {
       extensionChannel.resolveDecision(msg.id, msg.decision);
       break;
     case 'get_settings':
-      writeLine(socket, { type: 'settings_snapshot', settings: settingsStore.load() });
+      writeLine(socket, { type: 'settings_snapshot', settings: settingsStore.load(), requestId: msg.requestId });
       break;
     case 'update_settings':
-      writeLine(socket, { type: 'settings_snapshot', settings: applySettingsPatch(msg.patch) });
+      writeLine(socket, {
+        type: 'settings_snapshot',
+        settings: applySettingsPatch(msg.patch),
+        requestId: msg.requestId,
+      });
       break;
     case 'get_diagnostics':
-      writeLine(socket, { type: 'diagnostics_snapshot', logTail: readLogTail() });
+      writeLine(socket, { type: 'diagnostics_snapshot', logTail: readLogTail(), requestId: msg.requestId });
+      break;
+    case 'test_phone':
+      await handleTestPhone(socket, msg.requestId);
+      break;
+    case 'relay_pair_start':
+      await handleRelayPairStart(socket, msg.requestId);
+      break;
+    case 'relay_pair_status':
+      await handleRelayPairStatus(socket, msg.code, msg.requestId);
       break;
     default:
       console.error(`[ipc-server] неизвестный тип сообщения: ${msg.type}`);
@@ -137,9 +151,49 @@ function applySettingsPatch(patch) {
     // mergeSnoozeByProject не завязана на семантику "проект" — обычный
     // JSON Merge Patch по карте sessionId -> имя, используем ту же функцию.
     sessionNames: mergeSnoozeByProject(current.sessionNames, patch.sessionNames),
+    // Как и rules — мёржим на один уровень вглубь: popup обычно шлёт патч
+    // только с одним изменившимся полем (например, provider), полная
+    // замена стёрла бы уже сохранённые токены остальных провайдеров.
+    phone: { ...current.phone, ...(patch.phone || {}) },
   };
   settingsStore.save(merged);
   return merged;
+}
+
+// Кнопка "Отправить тестовое" в popup — минует router (не зависит от rules/
+// snooze/session-имён), чтобы проверить именно доставку в настроенный
+// провайдер, а не всю цепочку маршрутизации.
+async function handleTestPhone(socket, requestId) {
+  const settings = settingsStore.load();
+  const testEvent = {
+    id: `test-${Date.now()}`,
+    type: 'task_done',
+    summary: 'Тестовое уведомление от AI Agent Notifier',
+  };
+  try {
+    await phoneChannel.send(testEvent, settings);
+    writeLine(socket, { type: 'test_phone_result', ok: true, requestId });
+  } catch (err) {
+    writeLine(socket, { type: 'test_phone_result', ok: false, error: err.message, requestId });
+  }
+}
+
+async function handleRelayPairStart(socket, requestId) {
+  try {
+    const { code, deepLink } = await phoneChannel.pairStart();
+    writeLine(socket, { type: 'relay_pair_start_result', ok: true, code, deepLink, requestId });
+  } catch (err) {
+    writeLine(socket, { type: 'relay_pair_start_result', ok: false, error: err.message, requestId });
+  }
+}
+
+async function handleRelayPairStatus(socket, code, requestId) {
+  try {
+    const status = await phoneChannel.pairStatus(code);
+    writeLine(socket, { type: 'relay_pair_status_result', ok: true, ...status, requestId });
+  } catch (err) {
+    writeLine(socket, { type: 'relay_pair_status_result', ok: false, error: err.message, requestId });
+  }
 }
 
 async function handleSubmitEvent(socket, event) {

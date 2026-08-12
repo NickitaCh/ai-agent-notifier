@@ -14,7 +14,8 @@ const EXTENSION_PROTOCOL_VERSION = 1;
 
 let port = null;
 let lastEvents = []; // короткий лог в памяти service worker'а — для popup
-let waiters = {}; // тип ответа демона ("settings_snapshot"/"diagnostics_snapshot") -> resolve-функции
+let waiters = {}; // requestId -> resolve-функция (см. requestFromDaemon)
+let requestSeq = 0;
 let hostInfo = null; // { protocolVersion, hostVersion, mismatch } — из последнего host_hello
 
 function connect() {
@@ -50,10 +51,16 @@ function onNativeMessage(payload) {
     };
     return;
   }
-  if (payload.type === 'settings_snapshot' || payload.type === 'diagnostics_snapshot') {
-    const pending = waiters[payload.type] || [];
-    waiters[payload.type] = [];
-    pending.forEach((resolve) => resolve(payload));
+  // Ответ на конкретный requestFromDaemon() — сопоставляем по requestId, а
+  // не по типу сообщения. Раньше матчилось по типу ("settings_snapshot"),
+  // и первый же пришедший ответ резолвил ВСЕ ожидающие промисы этого типа —
+  // если два update_settings идут почти одновременно (например, юзер быстро
+  // заполняет несколько полей телефон-провайдера подряд), второй настоящий
+  // ответ с уже сохранёнными данными тихо терялся.
+  if (payload.requestId && waiters[payload.requestId]) {
+    const resolve = waiters[payload.requestId];
+    delete waiters[payload.requestId];
+    resolve(payload);
     return;
   }
 
@@ -67,19 +74,95 @@ function onNativeMessage(payload) {
   }
 }
 
-// Отправляет сообщение демону и ждёт ответ конкретного типа через
-// native-messaging порт. Без соединения — резолвится в null, вызывающий код
-// (popup) покажет "нет связи".
-function requestFromDaemon(message, replyType) {
+const DAEMON_REQUEST_TIMEOUT_MS = 15000;
+
+// Отправляет сообщение демону и ждёт именно ответ на него (сопоставление по
+// requestId — см. onNativeMessage) через native-messaging порт. Без
+// соединения — резолвится в null, вызывающий код (popup) покажет "нет связи".
+//
+// Таймаут — подстраховка: если Service Worker перезапустится, пока ответ ещё
+// в пути (MV3 может усыпить его даже при вроде бы открытом порте), waiters
+// обнулится вместе с остальным состоянием модуля, и ответ придёт уже
+// нечему сопоставить — тогда popup иначе завис бы на "отправляю…" навсегда.
+function requestFromDaemon(message) {
   return new Promise((resolve) => {
     if (!port) {
       resolve(null);
       return;
     }
-    waiters[replyType] = waiters[replyType] || [];
-    waiters[replyType].push(resolve);
-    port.postMessage(message);
+    const requestId = `${Date.now()}-${++requestSeq}`;
+    const timer = setTimeout(() => {
+      delete waiters[requestId];
+      resolve(null);
+    }, DAEMON_REQUEST_TIMEOUT_MS);
+    waiters[requestId] = (payload) => {
+      clearTimeout(timer);
+      resolve(payload);
+    };
+    port.postMessage({ ...message, requestId });
   });
+}
+
+// Пейринг с shared-ботом живёт здесь, а не в popup.js: popup.js раньше сам
+// опрашивал relay/pair/status в цикле, но popup закрывается сразу же, как
+// только теряет фокус — а именно это происходит в тот момент, когда
+// "Привязать через бота" открывает вкладку Telegram кнопкой chrome.tabs.create
+// (новая активная вкладка ворует фокус). Итог: юзер жмёт /start в Telegram,
+// relay реально выдаёт токен, но цикл опроса в popup.js уже мёртв, и токен
+// никогда не долетает до settings. Здесь то же самое переживает закрытие
+// попапа, потому что background — service worker, а не документ попапа;
+// код держится живым за счёт открытого native-messaging порта + будильника
+// keepalive ниже, который на всякий случай тоже дёргает проверку.
+async function getPendingPair() {
+  const { pendingPair } = await chrome.storage.session.get('pendingPair');
+  return pendingPair || null;
+}
+
+async function setPendingPair(value) {
+  if (value) await chrome.storage.session.set({ pendingPair: value });
+  else await chrome.storage.session.remove('pendingPair');
+}
+
+// Пока код ещё не подтверждён, дёргаем проверку почаще (раз в 3с), чтобы не
+// заставлять юзера ждать до 24с (следующего тика будильника keepalive) —
+// именно эта задержка провоцировала повторные клики по кнопке "Привязать".
+// Будильник ниже остаётся подстраховкой на случай, если сам SW уснёт
+// раньше, чем цепочка setTimeout успеет доработать.
+let pairPollTimer = null;
+
+function schedulePairPoll(delayMs) {
+  clearTimeout(pairPollTimer);
+  pairPollTimer = setTimeout(async () => {
+    await checkPendingPair();
+    if (await getPendingPair()) schedulePairPoll(3000);
+  }, delayMs);
+}
+
+async function checkPendingPair() {
+  const pending = await getPendingPair();
+  if (!pending) return;
+  if (Date.now() >= pending.deadline) {
+    await setPendingPair(null);
+    return;
+  }
+  const status = await requestFromDaemon({ type: 'relay_pair_status', code: pending.code });
+  if (status?.paired && status.token) {
+    await requestFromDaemon({
+      type: 'update_settings',
+      patch: { phone: { provider: 'relay', relayToken: status.token } },
+    });
+    await setPendingPair(null);
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon128.png',
+      title: 'AI Agent Notifier',
+      message: 'Телефон привязан через Telegram-бота ✓',
+    });
+    return;
+  }
+  if (status?.expired) {
+    await setPendingPair(null);
+  }
 }
 
 chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
@@ -96,7 +179,9 @@ chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) =
 // держит его живым, но подстраховываемся периодической проверкой.
 chrome.alarms.create('keepalive', { periodInMinutes: 0.4 });
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'keepalive' && !port) connect();
+  if (alarm.name !== 'keepalive') return;
+  if (!port) connect();
+  checkPendingPair();
 });
 
 chrome.runtime.onStartup.addListener(connect);
@@ -120,21 +205,39 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return false;
   }
   if (msg.type === 'get_settings') {
-    requestFromDaemon({ type: 'get_settings' }, 'settings_snapshot').then((reply) =>
-      sendResponse({ settings: reply?.settings })
-    );
+    requestFromDaemon({ type: 'get_settings' }).then((reply) => sendResponse({ settings: reply?.settings }));
     return true; // ответ асинхронный
   }
   if (msg.type === 'update_settings') {
-    requestFromDaemon({ type: 'update_settings', patch: msg.patch }, 'settings_snapshot').then((reply) =>
+    requestFromDaemon({ type: 'update_settings', patch: msg.patch }).then((reply) =>
       sendResponse({ settings: reply?.settings })
     );
     return true;
   }
   if (msg.type === 'get_diagnostics') {
-    requestFromDaemon({ type: 'get_diagnostics' }, 'diagnostics_snapshot').then((reply) =>
-      sendResponse({ logTail: reply?.logTail })
-    );
+    requestFromDaemon({ type: 'get_diagnostics' }).then((reply) => sendResponse({ logTail: reply?.logTail }));
+    return true;
+  }
+  if (msg.type === 'test_phone') {
+    requestFromDaemon({ type: 'test_phone' }).then((reply) => sendResponse({ ok: reply?.ok, error: reply?.error }));
+    return true;
+  }
+  if (msg.type === 'relay_pair_start') {
+    requestFromDaemon({ type: 'relay_pair_start' }).then(async (reply) => {
+      if (reply?.ok && reply.code) {
+        await setPendingPair({ code: reply.code, deadline: Date.now() + 10 * 60 * 1000 });
+        schedulePairPoll(2000);
+      }
+      sendResponse(reply || { ok: false });
+    });
+    return true;
+  }
+  if (msg.type === 'relay_pair_status') {
+    requestFromDaemon({ type: 'relay_pair_status', code: msg.code }).then((reply) => sendResponse(reply || { ok: false }));
+    return true;
+  }
+  if (msg.type === 'get_pair_status') {
+    getPendingPair().then((pending) => sendResponse({ pending }));
     return true;
   }
   return false;

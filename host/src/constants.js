@@ -41,6 +41,13 @@ function routingSettingsPath() {
   return path.join(platform.configDir(), 'routing.json');
 }
 
+// Курсор long-polling'а Telegram getUpdates (свой бот, канал "телефон") —
+// переживает рестарт демона, чтобы не переигрывать старые callback_query
+// при каждом старте.
+function telegramOffsetPath() {
+  return path.join(platform.configDir(), 'telegram-offset.txt');
+}
+
 module.exports = {
   NATIVE_HOST_NAME,
   DAEMON_PORT,
@@ -50,4 +57,5 @@ module.exports = {
   logFilePath,
   hookLogFilePath,
   routingSettingsPath,
+  telegramOffsetPath,
 };

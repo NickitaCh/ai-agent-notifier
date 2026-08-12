@@ -8,6 +8,7 @@
 const { logFilePath } = require('./constants');
 const { createFileLogger } = require('./file-logger');
 const ipcServer = require('./ipc-server');
+const telegramPoller = require('./telegram-poller');
 
 function redirectLogsToFile() {
   // Спавнится с stdio:'ignore', поэтому свой лог пишем в файл вручную —
@@ -21,6 +22,10 @@ function main() {
   redirectLogsToFile();
   console.log(`демон стартовал, pid=${process.pid}`);
   ipcServer.start();
+  // Не await — это бесконечный цикл на время жизни демона (см.
+  // telegram-poller.js), должен работать параллельно с TCP-сервером, а не
+  // блокировать запуск.
+  telegramPoller.start().catch((err) => console.error(`[daemon] telegram-poller упал: ${err.message}`));
 
   process.on('SIGTERM', () => process.exit(0));
   process.on('SIGINT', () => process.exit(0));

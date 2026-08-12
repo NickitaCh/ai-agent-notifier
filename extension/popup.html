@@ -237,6 +237,36 @@
         color: var(--ink);
       }
 
+      /* Не <select> — нативный OS-выпадающий список в попапе расширения на
+         Windows может увести фокус так, что весь попап закроется на клике
+         по пункту, оборвав асинхронный патч настроек на середине. Кнопки
+         не спавнят отдельное окно и этой проблеме не подвержены. */
+      #phoneProviderRow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+      button.provider-chip {
+        font-size: 12px;
+        padding: 6px 10px;
+        border: 1px solid var(--line);
+        background: var(--paper-raised);
+        color: var(--ink);
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      button.provider-chip:hover { border-color: var(--accent); color: var(--accent); }
+      button.provider-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+      button.provider-chip.active { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+      .phone-fields { display: none; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+      .phone-fields.show { display: flex; }
+      .phone-fields input[type="text"] {
+        font-size: 12px;
+        padding: 5px 7px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--paper-raised);
+        color: var(--ink);
+      }
+      .phone-fields input[type="text"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+      .phone-hint { font-size: 11px; color: var(--muted); margin: -3px 0 8px; }
+
       .save-hint {
         font-size: 10.5px;
         color: var(--muted);
@@ -356,6 +386,7 @@
             <th></th>
             <th class="center">Уведомление</th>
             <th class="center">Бейдж</th>
+            <th class="center">Телефон</th>
           </tr>
         </thead>
         <tbody>
@@ -363,14 +394,55 @@
             <td>Нужен апрув</td>
             <td class="center"><input type="checkbox" data-event="permission_request" data-channel="notification" /></td>
             <td class="center"><input type="checkbox" data-event="permission_request" data-channel="badge" /></td>
+            <td class="center"><input type="checkbox" data-event="permission_request" data-channel="phone" /></td>
           </tr>
           <tr>
             <td>Задача готова</td>
             <td class="center"><input type="checkbox" data-event="task_done" data-channel="notification" /></td>
             <td class="center"><input type="checkbox" data-event="task_done" data-channel="badge" /></td>
+            <td class="center"><input type="checkbox" data-event="task_done" data-channel="phone" /></td>
           </tr>
         </tbody>
       </table>
+    </section>
+
+    <section class="settings-ui">
+      <h2>Телефон</h2>
+      <div id="phoneProviderRow">
+        <button type="button" class="provider-chip" data-provider="none">выключено</button>
+        <button type="button" class="provider-chip" data-provider="ntfy">ntfy</button>
+        <button type="button" class="provider-chip" data-provider="webhook">Webhook</button>
+        <button type="button" class="provider-chip" data-provider="pushover">Pushover</button>
+        <button type="button" class="provider-chip" data-provider="telegram">Telegram (свой бот)</button>
+        <button type="button" class="provider-chip" data-provider="relay">Telegram (общий бот)</button>
+      </div>
+
+      <div id="phoneFieldsNtfy" class="phone-fields">
+        <input type="text" id="phoneNtfyTopicUrl" placeholder="https://ntfy.sh/мой-секретный-топик" />
+      </div>
+
+      <div id="phoneFieldsWebhook" class="phone-fields">
+        <input type="text" id="phoneWebhookUrl" placeholder="URL вебхука (Discord/Slack)" />
+      </div>
+
+      <div id="phoneFieldsPushover" class="phone-fields">
+        <input type="text" id="phonePushoverToken" placeholder="Application Token" />
+        <input type="text" id="phonePushoverUserKey" placeholder="User Key" />
+      </div>
+
+      <div id="phoneFieldsTelegram" class="phone-fields">
+        <input type="text" id="phoneTelegramBotToken" placeholder="Bot token (от @BotFather)" />
+        <input type="text" id="phoneTelegramChatId" placeholder="Chat ID" />
+        <div class="phone-hint">Кнопки Разрешить/Отклонить работают только с этим режимом.</div>
+      </div>
+
+      <div id="phoneFieldsRelay" class="phone-fields">
+        <button type="button" id="relayPairBtn" class="ghost">Привязать через бота</button>
+        <div id="relayPairStatus" class="phone-hint"></div>
+      </div>
+
+      <button id="phoneTest" class="ghost" type="button">Отправить тестовое уведомление</button>
+      <div id="phoneTestHint" class="save-hint"></div>
     </section>
 
     <section class="settings-ui">
