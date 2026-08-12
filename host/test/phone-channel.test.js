@@ -24,30 +24,36 @@ function okResponse(body = {}) {
   return { ok: true, status: 200, text: async () => '', json: async () => body };
 }
 
+// Язык в buildMessage/send передаём явно во всех тестах, где проверяется
+// текст. Без него i18n падает на локаль машины: локально это ru и тесты
+// проходили, а на англоязычном раннере CI — en, и ассерты на русские
+// подстроки валились. Тест не должен зависеть от языка машины.
 test('buildMessage: actionable permission_request даёт заголовок "просит разрешение"', () => {
-  const { title, body, isActionable } = phoneChannel.buildMessage({
-    type: 'permission_request',
-    tool: 'Edit',
-    summary: 'редактирует файл',
-  });
+  const { title, body, isActionable } = phoneChannel.buildMessage(
+    {
+      type: 'permission_request',
+      tool: 'Edit',
+      summary: 'редактирует файл',
+    },
+    'ru'
+  );
   assert.equal(isActionable, true);
   assert.match(title, /просит разрешение/);
   assert.equal(body, 'редактирует файл');
 });
 
 test('buildMessage: permission_request с needsDecision:false — информационный, без действия', () => {
-  const { title, body, isActionable } = phoneChannel.buildMessage({
-    type: 'permission_request',
-    needsDecision: false,
-    summary: 'выберите вариант',
-  });
+  const { title, body, isActionable } = phoneChannel.buildMessage(
+    { type: 'permission_request', needsDecision: false, summary: 'выберите вариант' },
+    'ru'
+  );
   assert.equal(isActionable, false);
   assert.match(title, /задал вопрос/);
   assert.match(body, /ответьте в терминале/);
 });
 
 test('buildMessage: task_done даёт заголовок "закончил"', () => {
-  const { title, isActionable } = phoneChannel.buildMessage({ type: 'task_done' });
+  const { title, isActionable } = phoneChannel.buildMessage({ type: 'task_done' }, 'ru');
   assert.equal(isActionable, false);
   assert.match(title, /закончил/);
 });
@@ -100,7 +106,7 @@ test('send: ntfy публикует JSON с topic из URL', async () => {
     async (calls) => {
       await phoneChannel.send(
         { type: 'task_done' },
-        { phone: { provider: 'ntfy', ntfyTopicUrl: 'https://ntfy.sh/мой-топик' } }
+        { locale: 'ru', phone: { provider: 'ntfy', ntfyTopicUrl: 'https://ntfy.sh/мой-топик' } }
       );
       assert.equal(calls.length, 1);
       assert.equal(calls[0].url, 'https://ntfy.sh/');
